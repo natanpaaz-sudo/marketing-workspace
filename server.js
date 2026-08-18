@@ -3,7 +3,7 @@
 //  Dashboard de Demandas - Grupo Via Porto (servidor Node)
 //  Destinado a hospedagem em nuvem (Render + Supabase)
 //  Rotas: /api/ping | /api/login | /api/logout | /api/data
-//         /api/save-data | /api/usuarios | /api/enviar-email
+//         /api/save-data | /api/usuarios
 //  Arquivos estaticos: dashboard-demandas.html, logos/...
 // ============================================================
 const http = require('http');
@@ -213,21 +213,6 @@ function seedData() {
   saveDataFile();
 }
 
-// ---------------- email (Resend; Fase 4) ----------------
-async function enviarEmail(destinatario, assunto, corpoHtml) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { ok: false, msg: 'RESEND_API_KEY nao configurada' };
-  const from = process.env.EMAIL_FROM || 'Dashboard Demandas <onboarding@resend.dev>';
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [destinatario], subject: assunto, html: corpoHtml })
-  });
-  const body = await res.json().catch(() => ({}));
-  if (res.ok) return { ok: true, id: body.id };
-  return { ok: false, msg: (body.message || 'resend_erro') };
-}
-
 // ---------------- rotas ----------------
 // ---------------- rate limit de login ----------------
 const loginAttempts = new Map(); // ip -> { count, resetAt }
@@ -354,18 +339,6 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
       }
       return sendJson(res, 405, { ok: false, msg: 'metodo nao permitido' });
-    }
-
-    // email (qualquer login; Resend)
-    if (method === 'POST' && p === '/api/enviar-email') {
-      const auth = getAuth(req);
-      if (!auth.ok) return sendJson(res, 401, { ok: false, msg: 'login' });
-      const body = await readBody(req);
-      const o = (() => { try { return JSON.parse(body); } catch (e) { return null; } })();
-      if (!o || !o.destinatario) return sendJson(res, 400, { ok: false, msg: 'destinatario obrigatorio' });
-      const r = await enviarEmail(o.destinatario, o.assunto || '', o.corpo || '');
-      if (!r.ok) return sendJson(res, 200, { ok: false, msg: r.msg || 'resend_erro' });
-      return sendJson(res, 200, r);
     }
 
     // arquivos estaticos (somente whitelist)

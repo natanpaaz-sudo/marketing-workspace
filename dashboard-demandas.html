@@ -1825,48 +1825,8 @@ async function removeUser(u){
   await loadUsers();
 }
 
-function fmtDataBR(iso){
-  if(!iso)return'Sem prazo';
-  const p=String(iso).slice(0,10).split('-');
-  return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(iso);
-}
-async function sendEmail(type,demand,extra){
-  if(!canEdit())return;
-  if(!demand||!demand.resp)return;
-  const resp=resps.find(r=>r.name===demand.resp.name);
-  if(!resp||!resp.email){showToast('Sem e-mail para '+demand.resp.name);return}
-  const titulo=demand.title||'';
-  const marca=demand.brand?.name||'';
-  const linha=demanda=>'<li><strong>Demanda:</strong> '+escHtml(demanda.title||'')+'</li><li><strong>Marca:</strong> '+escHtml(demanda.brand?.name||'')+'</li>';
-  let subject='[ATUALIZAÇÃO] ('+titulo+') - ('+marca+')';
-  let htmlBody='';
-  if(type==='prazo'){
-    subject='[PRAZO ALTERADO] ('+titulo+') - ('+marca+')';
-    htmlBody='<p>Olá, <strong>'+escHtml(resp.name)+'</strong>!</p><p>Sua demanda teve o prazo alterado:</p><ul>'+linha(demand)
-      +'<li><strong>Prazo anterior:</strong> '+fmtDataBR(extra&&extra.antigo)+'</li>'
-      +'<li><strong>Novo prazo:</strong> '+fmtDataBR(extra&&extra.novo)+'</li></ul><p style="color:#888;font-size:.8rem">Dashboard de Demandas - Grupo Via Porto</p>';
-  }else{
-    const descHtml=demand.desc?'<p><strong>Descrição:</strong></p><p>'+escHtml(demand.desc)+'</p>':'';
-    const cl=demand.checklist||[];
-    const clHtml=cl.length?'<p><strong>Checklist:</strong></p><ul>'+cl.map(i=>'<li>'+escHtml(i.text)+(i.done?' &#9989;':'')+'</li>').join('')+'</ul>':'';
-    htmlBody='<p>Olá, <strong>'+escHtml(resp.name)+'</strong>!</p><p>Sua demanda teve uma atualização:</p><ul>'+linha(demand)
-      +'<li><strong>Status:</strong> '+(STATUS_LABELS[demand.status]||demand.status||'')+'</li>'
-      +'<li><strong>Prazo:</strong> '+fmtDataBR(demand.deadline)+'</li></ul>'+descHtml+clHtml+'<p style="color:#888;font-size:.8rem">Dashboard de Demandas - Grupo Via Porto</p>';
-  }
-  try{
-    const ctrl=new AbortController();
-    const tid=setTimeout(()=>ctrl.abort(),30000);
-    const r=await fetch('/api/enviar-email',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({destinatario:resp.email,assunto:subject,corpo:htmlBody}),
-      signal:ctrl.signal
-    });
-    clearTimeout(tid);
-    const data=await r.json();
-    if(data.ok)showToast('E-mail enviado para '+resp.name);
-    else showToast('Erro: '+data.msg);
-  }catch(e){showToast('Servidor offline. Abra via abrir-dashboard.bat')}
+function sendEmail(type,demand,extra){
+  // Notificacoes por e-mail sao enviadas pelo agente local (agente-local.cjs + Outlook)
 }
 
 // ============ TELA MENSAL ============
