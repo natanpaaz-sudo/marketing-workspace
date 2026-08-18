@@ -95,6 +95,13 @@ function hasRole(auth, req) {
   return true;
 }
 function publicUser(u) { return { username: u.username, role: u.role }; }
+function userNameOf(username) {
+  // mapeia username -> nome do responsavel (via resps)
+  const r = (state.data.resps || []).find(r => String(r.name || '').toLowerCase().replace(/\s+/g, '') === String(username || '').toLowerCase().replace(/\s+/g, ''));
+  if (r) return r.name;
+  // fallback: converter underscore/simples
+  return String(username || '').replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 function dataPayload(auth) {
   return { ok: true, rev: state.data.rev, isAdmin: auth.role === 'admin', user: auth.user, data: state.data };
 }
@@ -294,6 +301,14 @@ async function handleRequest(req, res) {
       if (!o) return sendJson(res, 400, { ok: false, msg: 'corpo invalido' });
       if (Number(o.rev) !== Number(state.data.rev)) {
         return sendJson(res, 409, { ok: false, conflict: true, rev: state.data.rev, data: state.data });
+      }
+      // Fase 3: colaborador so pode criar demanda para si mesmo
+      if (auth.role !== 'admin' && o.data && Array.isArray(o.data.demands)) {
+        const userName = userNameOf(auth.user);
+        const novas = o.data.demands.filter(nd => !state.data.demands.some(od => od.id === nd.id));
+        if (novas.length && novas.some(nd => (nd.resp && nd.resp.name || '') !== userName)) {
+          return sendJson(res, 403, { ok: false, msg: 'Colaborador so pode criar demanda para si mesmo' });
+        }
       }
       state.data = {
         rev: Number(state.data.rev) + 1,

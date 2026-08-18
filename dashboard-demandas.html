@@ -519,7 +519,7 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
 </head>
 <body>
 <div class="header">
-  <a class="header-brand" href="#" title="Grupo Via Porto"><img class="header-logo" src="LOGO_GRUPO-02 (2).png" alt="Grupo Via Porto"></a>
+  <a class="header-brand" href="#" title="Grupo Via Porto"><img class="header-logo" src="logo-viaporto.png" alt="Grupo Via Porto"></a>
   <div class="header-actions">
     <button class="btn-clear-filter" id="btnClearFilter" onclick="clearFilters()">Limpar Filtro</button>
     <button class="view-btn on" id="btnViewKanban" onclick="toggleView('demandas')" title="Painel kanban de demandas">Dashboard</button>
@@ -935,9 +935,15 @@ function loadData(){
 let __serverMode=false, __role='admin', __rev=0, __lastState='';
 let __baseData=null, __rebaseGuard=0;
 const MANAGER={name:'Natan Paz',email:'natan.silva@viaporto.com.br'};
+let __userName='';
+function userNameOfServer(username){
+  const r=(resps||[]).find(r=>String(r.name||'').toLowerCase().replace(/\s+/g,'')===String(username||'').toLowerCase().replace(/\s+/g,''));
+  if(r)return r.name;
+  return String(username||'').replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
 function deepClone(o){return JSON.parse(JSON.stringify(o))}
-function currentUserName(){return MANAGER.name}
-function currentUserEmail(){return MANAGER.email}
+function currentUserName(){return __userName||MANAGER.name}
+function currentUserEmail(){return __userName?(resps.find(r=>r.name===__userName)||{}).email||'':MANAGER.email}
 function localStateString(){return JSON.stringify({demands,brands,resps,monthly})}
 function canEdit(){return __role==='admin'}
 function canPlanoEdit(){return __role==='admin'||__role==='colaborador'}
@@ -996,6 +1002,7 @@ async function serverLoad(){
       __lastState=localStateString();
       __rebaseGuard=0;
       setRole(d.isAdmin?'admin':'colaborador');
+      if(d.user)__userName=userNameOfServer(d.user);
       hideLogin();syncMirror();renderAll();initMonthly();
       if(migratedPlano||migratedOf){__lastState='';serverSave();}
       return true;
@@ -1455,6 +1462,14 @@ function openForm(id){
   renderPendingFiles();
   renderChecklistItems();
   ['fTitle','fDesc','fDeadline','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
+  // Fase 3: colaborador cria demanda apenas para si (responsavel travado)
+  if(!ro&&!id&&__role==='colaborador'&&__userName){
+    const fr=document.getElementById('fResp');
+    if(fr){
+      fr.value=__userName;
+      fr.disabled=true;
+    }
+  }
   const stSel=document.getElementById('fStatus');
   const stFinal=stSel?stSel.querySelector('option[value="finalizado"]'):null;
   if(__role==='colaborador'&&stFinal)stFinal.disabled=(stSel.value!=='finalizado');
@@ -1495,6 +1510,7 @@ async function saveDemand(){
       if(!brandName){alert('Selecione a marca!');document.getElementById('fBrand').focus();return false}
       if(!respName){alert('Selecione o responsavel!');document.getElementById('fResp').focus();return false}
       if(!status){alert('Selecione o status!');document.getElementById('fStatus').focus();return false}
+      if(__role==='colaborador'&&!id&&__userName&&respName!==__userName){showToast('Você só pode criar demandas para você mesmo');return false}
       const brandObj=brands.find(b=>b.name===brandName)||{name:brandName};
       const respObj=resps.find(r=>r.name===respName)||{name:respName,email:''};
       const files=pendingFiles.map(f=>({name:f.name,type:f.type,size:f.size,data:f.data}));
