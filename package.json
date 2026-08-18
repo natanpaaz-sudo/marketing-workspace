@@ -1,0 +1,13 @@
+{
+  "name": "dashboard-demandas",
+  "version": "1.0.0",
+  "description": "Dashboard de Demandas - Grupo Via Porto (servidor nuvem)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "ISC"
+}

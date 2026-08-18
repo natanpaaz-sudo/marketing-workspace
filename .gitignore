@@ -1,0 +1,24 @@
+node_modules/
+whatsapp/
+outlook-mcp/
+data.json
+usuarios.json
+srv_log.txt
+srv2_out.txt
+srv2_err.txt
+serv-log*.txt
+serv-err*.txt
+*.log
+backups/
+.DS_Store
+.git/
+*.bat
+*.ps1
+*.bak
+*.bak2
+acl-log.txt
+opencode.json
+test-thread.ps1
+despesas_publicidade.csv
+"LOGO_GRUPO-02 (2).png"
+.dockerignore
