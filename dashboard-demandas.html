@@ -6,7 +6,7 @@
 <title>Dashboard Demandas - Grupo Via Porto</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#f0f2f5;--card-bg:#fff;--text:#1a1a2e;--text-secondary:#555;--border:#ddd;--primary:#4361ee;--primary-hover:#3a56d4;--iniciando:#9b59b6;--backlog:#95a5a6;--aguardando:#e67e22;--negociacao:#3498db;--execucao:#2ecc71;--finalizado:#1abc9c;--danger:#e74c3c;--danger-hover:#c0392b;--warning:#f39c12;--success:#27ae60}
+:root{--bg:#f0f2f5;--card-bg:#fff;--text:#1a1a2e;--text-secondary:#555;--border:#ddd;--primary:#4361ee;--primary-hover:#3a56d4;--emproducao:#27ae60;--backlog:#95a5a6;--aguardando:#e67e22;--negociacao:#3498db;--execucao:#2ecc71;--finalizado:#1abc9c;--danger:#e74c3c;--danger-hover:#c0392b;--warning:#f39c12;--success:#27ae60}
 body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .header-brand{display:flex;align-items:center}
@@ -92,6 +92,9 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .card-badge.deadline{background:#fff3e0;color:#e65100}
 .card-badge.deadline.overdue{background:#fde8e8;color:#c0392b}
 .card-badge.deadline.due-soon{background:#fff8e1;color:#f57f17}
+.card-badge.prazo-forn{background:#e8f5e9;color:#1b5e20}
+.card-badge.prazo-forn.overdue{background:#fde8e8;color:#c0392b}
+.card-badge.prazo-forn.due-soon{background:#fff8e1;color:#f57f17}
 .card-checklist-icon{font-size:.65rem;color:var(--primary);display:flex;align-items:center;gap:2px}
 .card-attachment{font-size:.65rem;color:var(--primary);cursor:pointer;display:flex;align-items:center;gap:2px;background:#e8f0fe;padding:2px 7px;border-radius:4px;font-weight:600}
 .card-attachment:hover{background:#d0e0fd}
@@ -618,13 +621,19 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
           <label for="fStatus">Status</label>
           <select id="fStatus">
             <option value="">Selecione...</option>
-            <option value="iniciando">Iniciando</option>
-            <option value="gerente">GERENTE</option>
             <option value="backlog">Backlog</option>
-            <option value="aguardando">Aguardando CEO</option>
             <option value="execucao">Em Execucao</option>
+            <option value="gerente">GERENTE</option>
+            <option value="aguardando">Aguardando CEO</option>
+            <option value="emproducao">EM PRODUÇÃO</option>
             <option value="finalizado">Finalizado</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fFornecedor">Prazo do fornecedor <small style="color:var(--text-secondary);font-weight:400">(obrigatório para EM PRODUÇÃO)</small></label>
+          <input type="date" id="fFornecedor">
         </div>
       </div>
       <div class="files-section">
@@ -647,6 +656,27 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveDemand()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prazo Fornecedor Modal -->
+<div class="modal-overlay" id="prazoFornModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2>Prazo do fornecedor</h2>
+      <button class="modal-close" onclick="closePrazoFornModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Para mover a demanda para <strong>EM PRODUÇÃO</strong>, informe o prazo do fornecedor.</p>
+      <div class="form-group required">
+        <label for="pfData">Prazo do fornecedor</label>
+        <input type="date" id="pfData">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePrazoFornModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmPrazoForn()">Mover para EM PRODUÇÃO</button>
     </div>
   </div>
 </div>
@@ -884,10 +914,10 @@ const MONTHLY_CATS=['Gravação de vídeos','Ofertas do mês','Mídia Cooperada'
 
 const COLUMNS=[
   {id:'backlog',label:'Backlog',color:'var(--backlog)'},
-  {id:'iniciando',label:'Iniciando',color:'var(--iniciando)'},
   {id:'execucao',label:'Em Execucao',color:'var(--execucao)'},
   {id:'gerente',label:'GERENTE',color:'var(--primary)'},
   {id:'aguardando',label:'Aguardando CEO',color:'var(--aguardando)'},
+  {id:'emproducao',label:'EM PRODUÇÃO',color:'var(--emproducao)'},
   {id:'finalizado',label:'Finalizado',color:'var(--finalizado)'}
 ];
 let demands=[], brands=[], resps=[], monthly=[];
@@ -1248,7 +1278,7 @@ function formatDate(iso){
   return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
-const STATUSES={iniciando:'Iniciando',gerente:'GERENTE',backlog:'Backlog',aguardando:'Aguardando CEO',execucao:'Em Execucao',finalizado:'Finalizado'};
+const STATUSES={backlog:'Backlog',execucao:'Em Execucao',gerente:'GERENTE',aguardando:'Aguardando CEO',emproducao:'EM PRODUÇÃO',finalizado:'Finalizado'};
 
 function toggleFilter(type,value,event){
   if(type==='period')return;
@@ -1280,7 +1310,7 @@ function getFiltered(list){
     if(filterState.resp.length>0&&!filterState.resp.includes(d.resp?.name))return false;
     if(filterState.status.length>0&&!filterState.status.includes(d.status))return false;
     if(filterState.deadline.length>0){
-      const days=daysUntil(d.deadline);
+      const days=diasEfetivos(d);
       const match=filterState.deadline.some(dl=>{
         if(dl==='overdue')return days!==null&&days<0;
         if(dl==='due3')return days!==null&&days>=0&&days<=3;
@@ -1320,7 +1350,7 @@ function renderRespSummary(){
     const name=r.name;
     const gerente=active.filter(d=>d.resp?.name===name&&d.status==='gerente').length;
     const pendente=active.filter(d=>d.resp?.name===name&&d.status!=='gerente').length;
-    const atrasados=active.filter(d=>d.resp?.name===name&&(()=>{const dy=daysUntil(d.deadline);return dy!==null&&dy<0})()).length;
+    const atrasados=active.filter(d=>d.resp?.name===name&&(()=>{const dy=diasEfetivos(d);return dy!==null&&dy<0})()).length;
     const semPrazo=active.filter(d=>d.resp?.name===name&&!d.deadline).length;
     const fin=demands.filter(d=>d.resp?.name===name&&d.status==='finalizado').length;
     respData[name]={gerente,pendente,atrasados,semPrazo,finalizados:fin};
@@ -1362,12 +1392,25 @@ function renderKanban(){
   }).join('');
 }
 
+function diasEfetivos(d){
+  const d1=daysUntil(d.deadline);
+  const d2=daysUntil(d.deadlineFornecedor);
+  if(d1===null&&d2===null)return null;
+  if(d1===null)return d2;
+  if(d2===null)return d1;
+  return Math.min(d1,d2);
+}
 function renderCard(d){
-  const days=daysUntil(d.deadline);
+  const days=diasEfetivos(d);
   let deadlineCls='';
   if(days!==null&&days<0)deadlineCls=' overdue';
   else if(days!==null&&days<=3)deadlineCls=' due-soon';
-  const deadlineBadge=d.deadline?'<span class="card-badge deadline'+deadlineCls+'">'+formatDeadline(d.deadline,days)+'</span>':'';
+  const deadlineBadge=d.deadline?'<span class="card-badge deadline'+deadlineCls+'">'+formatDeadline(d.deadline,daysUntil(d.deadline))+'</span>':'';
+  const fornDays=daysUntil(d.deadlineFornecedor);
+  let fornCls='';
+  if(fornDays!==null&&fornDays<0)fornCls=' overdue';
+  else if(fornDays!==null&&fornDays<=3)fornCls=' due-soon';
+  const fornBadge=d.deadlineFornecedor?'<span class="card-badge prazo-forn'+fornCls+'">Forn: '+formatDeadline(d.deadlineFornecedor,fornDays)+'</span>':'';
   const brandBadge=d.brand?.name?'<span class="card-badge brand">'+d.brand.name+'</span>':'';
   const respBadge=d.resp?.name?'<span class="card-badge resp">'+d.resp.name+'</span>':'';
   const clDone=(d.checklist||[]).filter(i=>i.done).length;
@@ -1375,7 +1418,7 @@ function renderCard(d){
   const clIcon=clTotal>0?'<span class="card-checklist-icon">&#9745; '+clDone+'/'+clTotal+'</span>':'';
   const fileCount=(d.files||[]).length;
   const fileBadge=fileCount>0?'<span class="card-attachment" onclick="event.stopPropagation();openFilesViewer(\''+d.id+'\')">&#128206; '+fileCount+'</span>':'';
-  return '<div class="card'+deadlineCls+'" draggable="true" data-id="'+d.id+'" onclick="editDemand(\''+d.id+'\')" ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"><div class="card-actions"><button class="done" title="Concluir" onclick="event.stopPropagation();completeDemand(\''+d.id+'\')">&#10003;</button><button title="Editar" onclick="event.stopPropagation();editDemand(\''+d.id+'\')">&#9998;</button><button class="del" title="Excluir" onclick="event.stopPropagation();deleteDemand(\''+d.id+'\')">&#10005;</button></div><div class="card-title">'+escHtml(d.title)+'</div>'+(d.desc?'<div class="card-desc">'+escHtml(d.desc)+'</div>':'')+'<div class="card-meta">'+brandBadge+respBadge+deadlineBadge+clIcon+fileBadge+'</div></div>';
+  return '<div class="card'+deadlineCls+'" draggable="true" data-id="'+d.id+'" onclick="editDemand(\''+d.id+'\')" ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"><div class="card-actions"><button class="done" title="Concluir" onclick="event.stopPropagation();completeDemand(\''+d.id+'\')">&#10003;</button><button title="Editar" onclick="event.stopPropagation();editDemand(\''+d.id+'\')">&#9998;</button><button class="del" title="Excluir" onclick="event.stopPropagation();deleteDemand(\''+d.id+'\')">&#10005;</button></div><div class="card-title">'+escHtml(d.title)+'</div>'+(d.desc?'<div class="card-desc">'+escHtml(d.desc)+'</div>':'')+'<div class="card-meta">'+brandBadge+respBadge+deadlineBadge+fornBadge+clIcon+fileBadge+'</div></div>';
 }
 
 function formatDeadline(dl,days){
@@ -1415,14 +1458,40 @@ function onDrop(e){
     if(status==='finalizado'&&!canEdit()){showToast('Somente o gerente pode finalizar demandas');return}
     const d=demands.find(x=>x.id===draggedId);
     if(d){
-      const oldStatus=d.status;
-      d.status=status;
-      if(status==='finalizado'){d.finishedAt=new Date().toISOString();d.finalizadoPor={name:currentUserName(),email:currentUserEmail()}}
-      else {d.finishedAt=null;d.finalizadoPor=null}
-      saveData();renderAll();
-      if(oldStatus!==status)sendEmail('movimentacao',d);
+      if(status==='emproducao'&&!d.deadlineFornecedor){
+        openPrazoFornModal(d);
+        return;
+      }
+      moverPara(d,status);
     }
   }
+}
+function moverPara(d,status){
+  const oldStatus=d.status;
+  d.status=status;
+  if(status==='finalizado'){d.finishedAt=new Date().toISOString();d.finalizadoPor={name:currentUserName(),email:currentUserEmail()}}
+  else {d.finishedAt=null;d.finalizadoPor=null}
+  saveData();renderAll();
+  if(oldStatus!==status)sendEmail('movimentacao',d);
+}
+// Modal prazo do fornecedor (obrigatorio para entrar em EM PRODUCAO)
+let pfDemandaId=null;
+function openPrazoFornModal(d){
+  pfDemandaId=d.id;
+  document.getElementById('pfData').value=d.deadlineFornecedor||'';
+  document.getElementById('prazoFornModal').classList.add('active');
+  setTimeout(()=>document.getElementById('pfData').focus(),100);
+}
+function closePrazoFornModal(){
+  pfDemandaId=null;
+  document.getElementById('prazoFornModal').classList.remove('active');
+}
+function confirmPrazoForn(){
+  const val=document.getElementById('pfData').value;
+  if(!val){alert('Informe o prazo do fornecedor!');return}
+  const d=demands.find(x=>x.id===pfDemandaId);
+  closePrazoFornModal();
+  if(d){d.deadlineFornecedor=val;moverPara(d,'emproducao')}
 }
 // Form
 function openForm(id){
@@ -1446,6 +1515,7 @@ function openForm(id){
     fBrand.value=d.brand?.name||'';
     fResp.value=d.resp?.name||'';
     document.getElementById('fDeadline').value=d.deadline||'';
+    document.getElementById('fFornecedor').value=d.deadlineFornecedor||'';
     document.getElementById('fStatus').value=d.status||'';
     pendingFiles=(d.files||[]).map(f=>({...f}));
     editChecklist=(d.checklist||[]).map(i=>({...i}));
@@ -1457,11 +1527,12 @@ function openForm(id){
     fBrand.value='';
     fResp.value='';
     document.getElementById('fDeadline').value='';
+    document.getElementById('fFornecedor').value='';
     document.getElementById('fStatus').value='';
   }
   renderPendingFiles();
   renderChecklistItems();
-  ['fTitle','fDesc','fDeadline','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
+  ['fTitle','fDesc','fDeadline','fFornecedor','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
   // Fase 3: colaborador cria demanda apenas para si (responsavel travado)
   if(!ro&&!id&&__role==='colaborador'&&__userName){
     const fr=document.getElementById('fResp');
@@ -1506,10 +1577,12 @@ async function saveDemand(){
       const brandName=document.getElementById('fBrand').value;
       const respName=document.getElementById('fResp').value;
       const deadline=document.getElementById('fDeadline').value;
+      const prazoForn=document.getElementById('fFornecedor').value;
       if(!title){alert('Preencha o titulo!');document.getElementById('fTitle').focus();return false}
       if(!brandName){alert('Selecione a marca!');document.getElementById('fBrand').focus();return false}
       if(!respName){alert('Selecione o responsavel!');document.getElementById('fResp').focus();return false}
       if(!status){alert('Selecione o status!');document.getElementById('fStatus').focus();return false}
+      if(status==='emproducao'&&!prazoForn){alert('Preencha o prazo do fornecedor para mover para EM PRODUÇÃO!');document.getElementById('fFornecedor').focus();return false}
       if(__role==='colaborador'&&!id&&__userName&&respName!==__userName){showToast('Você só pode criar demandas para você mesmo');return false}
       const brandObj=brands.find(b=>b.name===brandName)||{name:brandName};
       const respObj=resps.find(r=>r.name===respName)||{name:respName,email:''};
@@ -1520,7 +1593,7 @@ async function saveDemand(){
           const oldResp=d.resp?.name;
           const oldStatus=d.status;
           const oldDeadline=d.deadline;
-          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
+          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.deadlineFornecedor=prazoForn||null;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
           if(status==='finalizado'){if(!d.finishedAt)d.finishedAt=new Date().toISOString();d.finalizadoPor=d.finalizadoPor||{name:currentUserName(),email:currentUserEmail()}}
           if(status!=='finalizado'){d.finishedAt=null;d.finalizadoPor=null}
           if(oldResp!==respName||oldStatus!==status)mails.push(['movimentacao',d]);
@@ -1529,7 +1602,7 @@ async function saveDemand(){
       }else{
         const newD={
           id:generateId(),title,desc,brand:brandObj,resp:respObj,
-          deadline:deadline||null,status,files,
+          deadline:deadline||null,deadlineFornecedor:prazoForn||null,status,files,
           checklist:editChecklist.map(i=>({...i})),
           createdAt:new Date().toISOString(),
           finishedAt:status==='finalizado'?new Date().toISOString():null,
@@ -1734,14 +1807,14 @@ function openTotals(kind,nome){
   let list=[];
   if(kind==='pendente'){list=active.filter(d=>d.status!=='gerente')}
   else if(kind==='gerente'){list=active.filter(d=>d.status==='gerente')}
-  else if(kind==='atrasados'){list=active.filter(d=>{const dy=daysUntil(d.deadline);return dy!==null&&dy<0})}
+  else if(kind==='atrasados'){list=active.filter(d=>{const dy=diasEfetivos(d);return dy!==null&&dy<0})}
   else if(kind==='semPrazo'){list=active.filter(d=>!d.deadline)}
   else if(kind==='finalizados'){list=demands.filter(d=>d.status==='finalizado')}
   if(nome){list=list.filter(d=>(d.resp?.name||'')===nome)}
   const lbl=TOTALS_LABEL[kind]||'Totais';
   document.getElementById('totalsTitle').textContent=lbl;
   document.getElementById('totalsBody').innerHTML=list.map(d=>
-    '<tr><td>'+escHtml(d.title)+'</td><td>'+(d.brand?.name||' - ')+'</td><td>'+(d.resp?.name||' - ')+'</td><td>'+(d.deadline||' - ')+'</td><td>'+(STATUS_LABELS[d.status]||d.status)+'</td></tr>'
+    '<tr><td>'+escHtml(d.title)+'</td><td>'+(d.brand?.name||' - ')+'</td><td>'+(d.resp?.name||' - ')+'</td><td>'+(d.deadline||' - ')+(d.deadlineFornecedor?' / forn: '+d.deadlineFornecedor:'')+'</td><td>'+(STATUS_LABELS[d.status]||d.status)+'</td></tr>'
   ).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">Nenhuma demanda neste total</td></tr>';
   document.getElementById('totalsSummary').innerHTML='<span><strong>'+list.length+'</strong> '+lbl+'</span>';
   document.getElementById('totalsModal').classList.add('active');
@@ -1781,7 +1854,7 @@ function showToast(msg){
 }
 
 // Email notifications via local server (COM automation)
-const STATUS_LABELS={backlog:'Backlog',iniciando:'Iniciando',execucao:'Em Execução',gerente:'GERENTE',aguardando:'Aguardando CEO',finalizado:'Finalizado'};
+const STATUS_LABELS={backlog:'Backlog',execucao:'Em Execução',gerente:'GERENTE',aguardando:'Aguardando CEO',emproducao:'EM PRODUÇÃO',finalizado:'Finalizado'};
 
 async function testServer(){
   try{
