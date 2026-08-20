@@ -235,7 +235,8 @@ function getClientIp(req) {
 
 async function handleRequest(req, res) {
   const url = new URL(req.url, 'http://x');
-  const p = url.pathname;
+  let p = url.pathname;
+  try { p = decodeURIComponent(p); } catch (e) {}
   const method = req.method;
 
   try {
@@ -345,7 +346,7 @@ async function handleRequest(req, res) {
     let filePath = path.join(SCRIPT_DIR, p === '/' ? 'dashboard-demandas.html' : p.slice(1));
     if (p.startsWith('/logos/') && !p.includes('..')) {
       filePath = path.join(SCRIPT_DIR, p.slice(1));
-    } else if (p !== '/' && !p.startsWith('/dashboard-demandas.html')) {
+    } else if (p !== '/' && !p.startsWith('/dashboard-demandas.html') && p !== '/logo-viaporto.png') {
       return sendJson(res, 404, { ok: false, msg: 'nao encontrado' });
     }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {

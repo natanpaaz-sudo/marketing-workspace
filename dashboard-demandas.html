@@ -402,11 +402,13 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .pl-acao-valor input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.12)}
 .pl-add-acao-btn{background:none;border:1px dashed var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;color:var(--text-secondary);font-size:.78rem;margin-top:6px}
 .pl-add-acao-btn:hover{color:var(--primary);border-color:var(--primary)}
-.pl-acao-edit{display:flex;gap:8px;margin-bottom:6px;align-items:center}
-.pl-acao-edit input{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem}
-.pl-acao-edit .pl-acao-uf-input{flex:0 0 92px;text-transform:uppercase}
-.pl-acao-edit .pl-acao-regiao-input{flex:0 0 130px}
-.pl-acao-edit .pl-acao-valor-input{flex:0 0 120px}
+.pl-acao-edit{display:grid;grid-template-columns:auto 70px 1fr 110px 26px;gap:6px 8px;margin-bottom:8px;align-items:center}
+.pl-acao-edit input{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;width:100%;box-sizing:border-box}
+.pl-acao-edit .pl-acao-grip{grid-column:1;grid-row:2}
+.pl-acao-edit .pl-acao-plataforma{grid-column:1 / -1;grid-row:1}
+.pl-acao-edit .pl-acao-uf-input{grid-column:2;grid-row:2;text-transform:uppercase}
+.pl-acao-edit .pl-acao-regiao-input{grid-column:3;grid-row:2}
+.pl-acao-edit .pl-acao-valor-input{grid-column:4;grid-row:2}
 .pl-acao-edit button{width:26px;height:26px;border:none;background:none;color:var(--danger);cursor:pointer;font-size:.9rem;border-radius:4px;flex-shrink:0}
 .pl-acao-edit button:hover{background:#fde8e8}
 .pl-acao-grip{flex:0 0 auto;color:#c4c4c4;cursor:grab;font-size:.8rem;user-select:none}
@@ -803,7 +805,7 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
 
 <!-- Plano de Midia Form Modal -->
 <div class="modal-overlay" id="planoFormModal">
-  <div class="modal" style="max-width:640px">
+  <div class="modal" style="max-width:900px">
     <div class="modal-header">
       <h2>Cadastro de Plano de Mídia</h2>
       <button class="modal-close" onclick="closePlanoForm()">&times;</button>
