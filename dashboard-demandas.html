@@ -684,7 +684,7 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
         <div class="files-list" id="fFilesList"></div>
         <div class="files-add">
           <label>Adicionar arquivo<input type="file" id="fFileInput" multiple onchange="handleFileAdd(event)"></label>
-          <span style="font-size:.7rem;color:var(--text-secondary)">Max 2MB por arquivo</span>
+          <span style="font-size:.7rem;color:var(--text-secondary)">Max 5MB por arquivo</span>
         </div>
       </div>
       <div class="checklist-section">
@@ -1668,7 +1668,7 @@ async function saveDemand(){
 function handleFileAdd(e){
   const files=Array.from(e.target.files);
   files.forEach(f=>{
-    if(f.size>2*1024*1024){alert('Arquivo '+f.name+' excede 2MB!');return}
+    if(f.size>5*1024*1024){alert('Arquivo '+f.name+' excede 5MB!');return}
     const reader=new FileReader();
     reader.onload=function(ev){
       pendingFiles.push({name:f.name,type:f.type,size:f.size,data:ev.target.result});
