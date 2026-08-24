@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Dashboard Demandas - Grupo Via Porto</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -498,8 +498,49 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
   #printPlano .pp-day.h .dp b{background:#fff;color:#1f8b4d}
 }
 .pl-acao-edit button:hover{background:#fde8e8}
-@media(max-width:768px){.summary-section{grid-template-columns:1fr}.details-section{flex-direction:column}.manage-panels{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.kanban{padding:0 12px 12px}.mcat-bar{width:80px}.mensais-topbar{padding:12px 12px}.mensais-filters{padding:0 12px 10px}.mcat{margin:0 12px 12px}}
-@media(max-width:600px){.header{padding:12px 16px}.header h1{font-size:1.1rem}.kanban{gap:8px}.kanban-column{min-width:180px}}
+@media(max-width:768px){
+  .summary-section{grid-template-columns:1fr}
+  .details-section{flex-direction:column}
+  .manage-panels{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .kanban{padding:0 12px 12px}
+  .mcat-bar{width:80px}
+  .mensais-topbar{padding:12px 12px}
+  .mensais-filters{padding:0 12px 10px}
+  .mcat{margin:0 12px 12px}
+  .totals-grid{grid-template-columns:1fr 1fr}
+  .kanban-column{flex:0 0 85vw;min-width:85vw;max-width:85vw}
+  .mcat-col{flex:0 0 85vw;min-width:85vw;max-width:85vw}
+  .mcat-col.pl-col,.mcat-col.of-col{min-width:85vw;max-width:85vw}
+  .mcat-col.pl-col.expanded .pl-acao{grid-template-columns:1fr}
+  .pl-acao-edit{grid-template-columns:1fr}
+  .pl-acao-edit .pl-acao-plataforma{grid-column:1;grid-row:1}
+  .pl-acao-edit .pl-acao-grip{grid-column:1;grid-row:2}
+  .pl-acao-edit .pl-acao-uf-input{grid-column:1;grid-row:3}
+  .pl-acao-edit .pl-acao-regiao-input{grid-column:1;grid-row:4}
+  .pl-acao-edit .pl-acao-valor-input{grid-column:1;grid-row:5}
+  .pl-acao-valor{flex:auto}
+  .mc-tipo-edit-head .mc-tipo-verba{flex:auto}
+  .mc-locked-verba{flex:auto}
+  .mc-acao-edit .mc-acao-valor{flex:auto}
+  .card-actions{opacity:1!important}
+  .modal[style*="900px"]{max-width:100%!important}
+}
+@media(max-width:600px){
+  .header{padding:12px 16px}
+  .header h1{font-size:1.1rem}
+  .kanban{gap:8px}
+  .kanban-column{flex:0 0 92vw;min-width:92vw;max-width:92vw}
+  .mcat-col{flex:0 0 92vw;min-width:92vw;max-width:92vw}
+  .totals-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .header-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+  .header-actions .btn{width:100%;text-align:center}
+  .kanban{padding:0 8px 8px}
+  .summary-section{padding:0 8px 8px}
+  .btn-new{bottom:16px;right:16px;width:48px;height:48px;font-size:1.2rem}
+}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 /* ===== Login ===== */
 .login-overlay{position:fixed;inset:0;background:#f4f6fb;z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
