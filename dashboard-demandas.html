@@ -96,6 +96,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .card-badge.prazo-forn{background:#e8f5e9;color:#1b5e20}
 .card-badge.prazo-forn.overdue{background:#fde8e8;color:#c0392b}
 .card-badge.prazo-forn.due-soon{background:#fff8e1;color:#f57f17}
+.card-badge.prazo-forn.concluida{background:#d4edda;color:#155724}
 .card-checklist-icon{font-size:.65rem;color:var(--primary);display:flex;align-items:center;gap:2px}
 .card-attachment{font-size:.65rem;color:var(--primary);cursor:pointer;display:flex;align-items:center;gap:2px;background:#e8f0fe;padding:2px 7px;border-radius:4px;font-weight:600}
 .card-attachment:hover{background:#d0e0fd}
@@ -658,9 +659,18 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="fDeadline">Prazo</label>
+          <label for="fDeadline">Prazo inicial</label>
           <input type="date" id="fDeadline">
         </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+            <input type="checkbox" id="fConcluida" onchange="onToggleConcluida('fConcluida','fConcluidaEm')"> Concluído
+          </label>
+          <span id="fConcluidaEm" style="font-size:.7rem;color:var(--success);min-height:16px"></span>
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-group required">
           <label for="fStatus">Status</label>
           <select id="fStatus">
@@ -674,19 +684,25 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="fFornecedorNome">Nome do fornecedor <small style="color:var(--text-secondary);font-weight:400">(obrigatório para EM PRODUÇÃO)</small></label>
-          <input type="text" id="fFornecedorNome" placeholder="Ex: Empresa X">
+      <div id="fFornecedorSection" style="display:none">
+        <div class="form-row">
+          <div class="form-group required">
+            <label for="fFornecedorNome">Nome do fornecedor</label>
+            <input type="text" id="fFornecedorNome" placeholder="Ex: Empresa X">
+          </div>
+          <div class="form-group required">
+            <label for="fFornecedor">Prazo do fornecedor</label>
+            <input type="date" id="fFornecedor">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="fFornecedor">Prazo do fornecedor <small style="color:var(--text-secondary);font-weight:400">(obrigatório para EM PRODUÇÃO)</small></label>
-          <input type="date" id="fFornecedor">
-        </div>
-      </div>
-      <div class="form-row" id="fConcluidaRow" style="display:none">
-        <div class="form-group">
-          <label><input type="checkbox" id="fConcluida"> Prazo inicial concluído (equipe cumpriu dentro do prazo)</label>
+        <div class="form-row">
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+              <input type="checkbox" id="fFornConcluida" onchange="onToggleConcluida('fFornConcluida','fFornConcluidaEm')"> Concluído
+            </label>
+            <span id="fFornConcluidaEm" style="font-size:.7rem;color:var(--success);min-height:16px"></span>
+          </div>
         </div>
       </div>
       <div class="files-section">
@@ -1450,7 +1466,11 @@ function renderKanban(){
 }
 
 function diasEfetivos(d){
-  if(d.deadlineConcluida) return daysUntil(d.deadlineFornecedor);
+  const dc=d.deadlineConcluida;
+  const fc=d.deadlineFornecedorConcluida;
+  if(dc&&fc)return null;
+  if(dc)return daysUntil(d.deadlineFornecedor);
+  if(fc)return daysUntil(d.deadline);
   const d1=daysUntil(d.deadline);
   const d2=daysUntil(d.deadlineFornecedor);
   if(d1===null&&d2===null)return null;
@@ -1469,7 +1489,8 @@ function renderCard(d){
   if(fornDays!==null&&fornDays<0)fornCls=' overdue';
   else if(fornDays!==null&&fornDays<=3)fornCls=' due-soon';
   const fornLabel=d.fornecedorNome?('Forn: '+d.fornecedorNome+' — '+formatDeadline(d.deadlineFornecedor,fornDays)):('Forn: '+formatDeadline(d.deadlineFornecedor,fornDays));
-  const fornBadge=d.deadlineFornecedor?'<span class="card-badge prazo-forn'+fornCls+'">'+fornLabel+'</span>':'';
+  const fornBadge=d.deadlineFornecedor?(d.deadlineFornecedorConcluida?'<span class="card-badge prazo-forn concluida">'+fornLabel+' ✓</span>':'<span class="card-badge prazo-forn'+fornCls+'">'+fornLabel+'</span>'):'';
+
   const brandBadge=d.brand?.name?'<span class="card-badge brand">'+d.brand.name+'</span>':'';
   const respBadge=d.resp?.name?'<span class="card-badge resp">'+d.resp.name+'</span>':'';
   const clDone=(d.checklist||[]).filter(i=>i.done).length;
@@ -1488,6 +1509,13 @@ function formatDeadline(dl,days){
   if(days===0)return str+' (hoje)';
   if(days<=3)return str+' ('+days+'d)';
   return str;
+}
+function fmtDataHoraBR(iso){
+  if(!iso)return'';
+  const d=new Date(iso);
+  const dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  return dd+' '+hh;
 }
 
 function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -1555,6 +1583,20 @@ function confirmPrazoForn(){
   closePrazoFornModal();
   if(d){d.fornecedorNome=nome;d.deadlineFornecedor=val;moverPara(d,'emproducao')}
 }
+// Toggle checkbox concluida + auto-set datetime
+function onToggleConcluida(checkId,spanId){
+  const cb=document.getElementById(checkId);
+  const sp=document.getElementById(spanId);
+  if(!cb||!sp)return;
+  if(cb.checked){
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+    const hh=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    sp.textContent='Concluído em '+dd+' '+hh;
+  }else{
+    sp.textContent='';
+  }
+}
 // Form
 function openForm(id){
   const ro=!canDemandEdit();
@@ -1577,9 +1619,12 @@ function openForm(id){
     fBrand.value=d.brand?.name||'';
     fResp.value=d.resp?.name||'';
     document.getElementById('fDeadline').value=d.deadline||'';
+    document.getElementById('fConcluida').checked=!!d.deadlineConcluida;
+    document.getElementById('fConcluidaEm').textContent=d.deadlineConcluidaEm?('Concluído em '+fmtDataHoraBR(d.deadlineConcluidaEm)):'';
     document.getElementById('fFornecedorNome').value=d.fornecedorNome||'';
     document.getElementById('fFornecedor').value=d.deadlineFornecedor||'';
-    document.getElementById('fConcluida').checked=!!d.deadlineConcluida;
+    document.getElementById('fFornConcluida').checked=!!d.deadlineFornecedorConcluida;
+    document.getElementById('fFornConcluidaEm').textContent=d.deadlineFornecedorConcluidaEm?('Concluído em '+fmtDataHoraBR(d.deadlineFornecedorConcluidaEm)):'';
     document.getElementById('fStatus').value=d.status||'';
     pendingFiles=(d.files||[]).map(f=>({...f}));
     editChecklist=(d.checklist||[]).map(i=>({...i}));
@@ -1591,14 +1636,17 @@ function openForm(id){
     fBrand.value='';
     fResp.value='';
     document.getElementById('fDeadline').value='';
+    document.getElementById('fConcluida').checked=false;
+    document.getElementById('fConcluidaEm').textContent='';
     document.getElementById('fFornecedorNome').value='';
     document.getElementById('fFornecedor').value='';
-    document.getElementById('fConcluida').checked=false;
+    document.getElementById('fFornConcluida').checked=false;
+    document.getElementById('fFornConcluidaEm').textContent='';
     document.getElementById('fStatus').value='';
   }
   renderPendingFiles();
   renderChecklistItems();
-  ['fTitle','fDesc','fDeadline','fFornecedorNome','fFornecedor','fConcluida','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
+  ['fTitle','fDesc','fDeadline','fConcluida','fFornecedorNome','fFornecedor','fFornConcluida','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
   // Fase 3: colaborador cria demanda apenas para si (responsavel travado)
   if(!ro&&!id&&__role==='colaborador'&&__userName){
     const fr=document.getElementById('fResp');
@@ -1610,13 +1658,13 @@ function openForm(id){
   const stSel=document.getElementById('fStatus');
   const stFinal=stSel?stSel.querySelector('option[value="finalizado"]'):null;
   if(__role==='colaborador'&&stFinal)stFinal.disabled=(stSel.value!=='finalizado');
-  // Mostrar/esconder checkbox "Prazo inicial concluído" conforme status
-  function toggleConcluidaRow(){
+  // Mostrar/esconder seção do fornecedor conforme status
+  function toggleFornecedorSection(){
     const s=document.getElementById('fStatus').value;
-    const row=document.getElementById('fConcluidaRow');
-    if(row) row.style.display=(s==='emproducao'||s==='finalizado')?'':'none';
+    const sec=document.getElementById('fFornecedorSection');
+    if(sec) sec.style.display=(s==='emproducao'||s==='finalizado')?'':'none';
   }
-  if(stSel){ stSel.addEventListener('change',toggleConcluidaRow); toggleConcluidaRow(); }
+  if(stSel){ stSel.addEventListener('change',toggleFornecedorSection); toggleFornecedorSection(); }
   modal.classList.add('active');
   if(!ro)setTimeout(()=>document.getElementById('fTitle').focus(),100);
 }
@@ -1653,6 +1701,11 @@ async function saveDemand(){
       const fornecedorNome=document.getElementById('fFornecedorNome').value.trim();
       const prazoForn=document.getElementById('fFornecedor').value;
       const deadlineConcluida=document.getElementById('fConcluida').checked;
+      const fornConcluida=document.getElementById('fFornConcluida').checked;
+      // Auto-set datetime when checkbox is checked
+      const now=new Date().toISOString();
+      const deadlineConcluidaEm=deadlineConcluida?now:null;
+      const deadlineFornecedorConcluidaEm=fornConcluida?now:null;
       if(!title){alert('Preencha o titulo!');document.getElementById('fTitle').focus();return false}
       if(!brandName){alert('Selecione a marca!');document.getElementById('fBrand').focus();return false}
       if(!respName){alert('Selecione o responsavel!');document.getElementById('fResp').focus();return false}
@@ -1669,7 +1722,7 @@ async function saveDemand(){
           const oldResp=d.resp?.name;
           const oldStatus=d.status;
           const oldDeadline=d.deadline;
-          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.fornecedorNome=fornecedorNome||null;d.deadlineFornecedor=prazoForn||null;d.deadlineConcluida=deadlineConcluida;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
+          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.fornecedorNome=fornecedorNome||null;d.deadlineFornecedor=prazoForn||null;d.deadlineConcluida=deadlineConcluida;d.deadlineConcluidaEm=deadlineConcluidaEm;d.deadlineFornecedorConcluida=fornConcluida;d.deadlineFornecedorConcluidaEm=deadlineFornecedorConcluidaEm;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
           if(status==='finalizado'){if(!d.finishedAt)d.finishedAt=new Date().toISOString();d.finalizadoPor=d.finalizadoPor||{name:currentUserName(),email:currentUserEmail()}}
           if(status!=='finalizado'){d.finishedAt=null;d.finalizadoPor=null}
           if(oldResp!==respName||oldStatus!==status)mails.push(['movimentacao',d]);
@@ -1678,7 +1731,7 @@ async function saveDemand(){
       }else{
         const newD={
           id:generateId(),title,desc,brand:brandObj,resp:respObj,
-          deadline:deadline||null,fornecedorNome:fornecedorNome||null,deadlineFornecedor:prazoForn||null,deadlineConcluida,status,files,
+          deadline:deadline||null,fornecedorNome:fornecedorNome||null,deadlineFornecedor:prazoForn||null,deadlineConcluida,deadlineConcluidaEm,deadlineFornecedorConcluida:fornConcluida,deadlineFornecedorConcluidaEm,status,files,
           checklist:editChecklist.map(i=>({...i})),
           createdAt:new Date().toISOString(),
           finishedAt:status==='finalizado'?new Date().toISOString():null,
