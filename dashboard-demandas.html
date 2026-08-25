@@ -92,6 +92,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .card-badge.deadline{background:#fff3e0;color:#e65100}
 .card-badge.deadline.overdue{background:#fde8e8;color:#c0392b}
 .card-badge.deadline.due-soon{background:#fff8e1;color:#f57f17}
+.card-badge.deadline.concluida{background:#d4edda;color:#155724}
 .card-badge.prazo-forn{background:#e8f5e9;color:#1b5e20}
 .card-badge.prazo-forn.overdue{background:#fde8e8;color:#c0392b}
 .card-badge.prazo-forn.due-soon{background:#fff8e1;color:#f57f17}
@@ -675,8 +676,17 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label for="fFornecedorNome">Nome do fornecedor <small style="color:var(--text-secondary);font-weight:400">(obrigatório para EM PRODUÇÃO)</small></label>
+          <input type="text" id="fFornecedorNome" placeholder="Ex: Empresa X">
+        </div>
+        <div class="form-group">
           <label for="fFornecedor">Prazo do fornecedor <small style="color:var(--text-secondary);font-weight:400">(obrigatório para EM PRODUÇÃO)</small></label>
           <input type="date" id="fFornecedor">
+        </div>
+      </div>
+      <div class="form-row" id="fConcluidaRow" style="display:none">
+        <div class="form-group">
+          <label><input type="checkbox" id="fConcluida"> Prazo inicial concluído (equipe cumpriu dentro do prazo)</label>
         </div>
       </div>
       <div class="files-section">
@@ -711,7 +721,11 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
       <button class="modal-close" onclick="closePrazoFornModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <p>Para mover a demanda para <strong>EM PRODUÇÃO</strong>, informe o prazo do fornecedor.</p>
+      <p>Para mover a demanda para <strong>EM PRODUÇÃO</strong>, informe os dados do fornecedor.</p>
+      <div class="form-group required">
+        <label for="pfNome">Nome do fornecedor</label>
+        <input type="text" id="pfNome" placeholder="Ex: Empresa X">
+      </div>
       <div class="form-group required">
         <label for="pfData">Prazo do fornecedor</label>
         <input type="date" id="pfData">
@@ -1436,6 +1450,7 @@ function renderKanban(){
 }
 
 function diasEfetivos(d){
+  if(d.deadlineConcluida) return daysUntil(d.deadlineFornecedor);
   const d1=daysUntil(d.deadline);
   const d2=daysUntil(d.deadlineFornecedor);
   if(d1===null&&d2===null)return null;
@@ -1448,12 +1463,13 @@ function renderCard(d){
   let deadlineCls='';
   if(days!==null&&days<0)deadlineCls=' overdue';
   else if(days!==null&&days<=3)deadlineCls=' due-soon';
-  const deadlineBadge=d.deadline?'<span class="card-badge deadline'+deadlineCls+'">'+formatDeadline(d.deadline,daysUntil(d.deadline))+'</span>':'';
+  const deadlineBadge=d.deadline?(d.deadlineConcluida?'<span class="card-badge deadline concluida">'+formatDeadline(d.deadline,daysUntil(d.deadline))+' ✓</span>':'<span class="card-badge deadline'+deadlineCls+'">'+formatDeadline(d.deadline,daysUntil(d.deadline))+'</span>'):'';
   const fornDays=daysUntil(d.deadlineFornecedor);
   let fornCls='';
   if(fornDays!==null&&fornDays<0)fornCls=' overdue';
   else if(fornDays!==null&&fornDays<=3)fornCls=' due-soon';
-  const fornBadge=d.deadlineFornecedor?'<span class="card-badge prazo-forn'+fornCls+'">Forn: '+formatDeadline(d.deadlineFornecedor,fornDays)+'</span>':'';
+  const fornLabel=d.fornecedorNome?('Forn: '+d.fornecedorNome+' — '+formatDeadline(d.deadlineFornecedor,fornDays)):('Forn: '+formatDeadline(d.deadlineFornecedor,fornDays));
+  const fornBadge=d.deadlineFornecedor?'<span class="card-badge prazo-forn'+fornCls+'">'+fornLabel+'</span>':'';
   const brandBadge=d.brand?.name?'<span class="card-badge brand">'+d.brand.name+'</span>':'';
   const respBadge=d.resp?.name?'<span class="card-badge resp">'+d.resp.name+'</span>':'';
   const clDone=(d.checklist||[]).filter(i=>i.done).length;
@@ -1501,7 +1517,7 @@ function onDrop(e){
     if(status==='finalizado'&&!canEdit()){showToast('Somente o gerente pode finalizar demandas');return}
     const d=demands.find(x=>x.id===draggedId);
     if(d){
-      if(status==='emproducao'&&!d.deadlineFornecedor){
+      if(status==='emproducao'&&(!d.deadlineFornecedor||!d.fornecedorNome)){
         openPrazoFornModal(d);
         return;
       }
@@ -1521,20 +1537,23 @@ function moverPara(d,status){
 let pfDemandaId=null;
 function openPrazoFornModal(d){
   pfDemandaId=d.id;
+  document.getElementById('pfNome').value=d.fornecedorNome||'';
   document.getElementById('pfData').value=d.deadlineFornecedor||'';
   document.getElementById('prazoFornModal').classList.add('active');
-  setTimeout(()=>document.getElementById('pfData').focus(),100);
+  setTimeout(()=>document.getElementById('pfNome').focus(),100);
 }
 function closePrazoFornModal(){
   pfDemandaId=null;
   document.getElementById('prazoFornModal').classList.remove('active');
 }
 function confirmPrazoForn(){
+  const nome=document.getElementById('pfNome').value.trim();
   const val=document.getElementById('pfData').value;
+  if(!nome){alert('Informe o nome do fornecedor!');return}
   if(!val){alert('Informe o prazo do fornecedor!');return}
   const d=demands.find(x=>x.id===pfDemandaId);
   closePrazoFornModal();
-  if(d){d.deadlineFornecedor=val;moverPara(d,'emproducao')}
+  if(d){d.fornecedorNome=nome;d.deadlineFornecedor=val;moverPara(d,'emproducao')}
 }
 // Form
 function openForm(id){
@@ -1558,7 +1577,9 @@ function openForm(id){
     fBrand.value=d.brand?.name||'';
     fResp.value=d.resp?.name||'';
     document.getElementById('fDeadline').value=d.deadline||'';
+    document.getElementById('fFornecedorNome').value=d.fornecedorNome||'';
     document.getElementById('fFornecedor').value=d.deadlineFornecedor||'';
+    document.getElementById('fConcluida').checked=!!d.deadlineConcluida;
     document.getElementById('fStatus').value=d.status||'';
     pendingFiles=(d.files||[]).map(f=>({...f}));
     editChecklist=(d.checklist||[]).map(i=>({...i}));
@@ -1570,12 +1591,14 @@ function openForm(id){
     fBrand.value='';
     fResp.value='';
     document.getElementById('fDeadline').value='';
+    document.getElementById('fFornecedorNome').value='';
     document.getElementById('fFornecedor').value='';
+    document.getElementById('fConcluida').checked=false;
     document.getElementById('fStatus').value='';
   }
   renderPendingFiles();
   renderChecklistItems();
-  ['fTitle','fDesc','fDeadline','fFornecedor','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
+  ['fTitle','fDesc','fDeadline','fFornecedorNome','fFornecedor','fConcluida','fStatus','fBrand','fResp'].forEach(idn=>{const el=document.getElementById(idn);if(el)el.disabled=ro});
   // Fase 3: colaborador cria demanda apenas para si (responsavel travado)
   if(!ro&&!id&&__role==='colaborador'&&__userName){
     const fr=document.getElementById('fResp');
@@ -1587,6 +1610,13 @@ function openForm(id){
   const stSel=document.getElementById('fStatus');
   const stFinal=stSel?stSel.querySelector('option[value="finalizado"]'):null;
   if(__role==='colaborador'&&stFinal)stFinal.disabled=(stSel.value!=='finalizado');
+  // Mostrar/esconder checkbox "Prazo inicial concluído" conforme status
+  function toggleConcluidaRow(){
+    const s=document.getElementById('fStatus').value;
+    const row=document.getElementById('fConcluidaRow');
+    if(row) row.style.display=(s==='emproducao'||s==='finalizado')?'':'none';
+  }
+  if(stSel){ stSel.addEventListener('change',toggleConcluidaRow); toggleConcluidaRow(); }
   modal.classList.add('active');
   if(!ro)setTimeout(()=>document.getElementById('fTitle').focus(),100);
 }
@@ -1620,11 +1650,14 @@ async function saveDemand(){
       const brandName=document.getElementById('fBrand').value;
       const respName=document.getElementById('fResp').value;
       const deadline=document.getElementById('fDeadline').value;
+      const fornecedorNome=document.getElementById('fFornecedorNome').value.trim();
       const prazoForn=document.getElementById('fFornecedor').value;
+      const deadlineConcluida=document.getElementById('fConcluida').checked;
       if(!title){alert('Preencha o titulo!');document.getElementById('fTitle').focus();return false}
       if(!brandName){alert('Selecione a marca!');document.getElementById('fBrand').focus();return false}
       if(!respName){alert('Selecione o responsavel!');document.getElementById('fResp').focus();return false}
       if(!status){alert('Selecione o status!');document.getElementById('fStatus').focus();return false}
+      if(status==='emproducao'&&!fornecedorNome){alert('Preencha o nome do fornecedor para mover para EM PRODUÇÃO!');document.getElementById('fFornecedorNome').focus();return false}
       if(status==='emproducao'&&!prazoForn){alert('Preencha o prazo do fornecedor para mover para EM PRODUÇÃO!');document.getElementById('fFornecedor').focus();return false}
       if(__role==='colaborador'&&!id&&__userName&&respName!==__userName){showToast('Você só pode criar demandas para você mesmo');return false}
       const brandObj=brands.find(b=>b.name===brandName)||{name:brandName};
@@ -1636,7 +1669,7 @@ async function saveDemand(){
           const oldResp=d.resp?.name;
           const oldStatus=d.status;
           const oldDeadline=d.deadline;
-          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.deadlineFornecedor=prazoForn||null;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
+          d.title=title;d.desc=desc;d.brand=brandObj;d.resp=respObj;d.deadline=deadline||null;d.fornecedorNome=fornecedorNome||null;d.deadlineFornecedor=prazoForn||null;d.deadlineConcluida=deadlineConcluida;d.status=status;d.files=files;d.checklist=editChecklist.map(i=>({...i}));
           if(status==='finalizado'){if(!d.finishedAt)d.finishedAt=new Date().toISOString();d.finalizadoPor=d.finalizadoPor||{name:currentUserName(),email:currentUserEmail()}}
           if(status!=='finalizado'){d.finishedAt=null;d.finalizadoPor=null}
           if(oldResp!==respName||oldStatus!==status)mails.push(['movimentacao',d]);
@@ -1645,7 +1678,7 @@ async function saveDemand(){
       }else{
         const newD={
           id:generateId(),title,desc,brand:brandObj,resp:respObj,
-          deadline:deadline||null,deadlineFornecedor:prazoForn||null,status,files,
+          deadline:deadline||null,fornecedorNome:fornecedorNome||null,deadlineFornecedor:prazoForn||null,deadlineConcluida,status,files,
           checklist:editChecklist.map(i=>({...i})),
           createdAt:new Date().toISOString(),
           finishedAt:status==='finalizado'?new Date().toISOString():null,
@@ -1857,7 +1890,7 @@ function openTotals(kind,nome){
   const lbl=TOTALS_LABEL[kind]||'Totais';
   document.getElementById('totalsTitle').textContent=lbl;
   document.getElementById('totalsBody').innerHTML=list.map(d=>
-    '<tr><td>'+escHtml(d.title)+'</td><td>'+(d.brand?.name||' - ')+'</td><td>'+(d.resp?.name||' - ')+'</td><td>'+(d.deadline||' - ')+(d.deadlineFornecedor?' / forn: '+d.deadlineFornecedor:'')+'</td><td>'+(STATUS_LABELS[d.status]||d.status)+'</td></tr>'
+    '<tr><td>'+escHtml(d.title)+'</td><td>'+(d.brand?.name||' - ')+'</td><td>'+(d.resp?.name||' - ')+'</td><td>'+(d.deadline||' - ')+(d.deadlineFornecedor?' / forn: '+(d.fornecedorNome?d.fornecedorNome+' — ':'')+d.deadlineFornecedor:'')+'</td><td>'+(STATUS_LABELS[d.status]||d.status)+'</td></tr>'
   ).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">Nenhuma demanda neste total</td></tr>';
   document.getElementById('totalsSummary').innerHTML='<span><strong>'+list.length+'</strong> '+lbl+'</span>';
   document.getElementById('totalsModal').classList.add('active');
