@@ -114,13 +114,13 @@ const SUPABASE_HEADERS = { apikey: SUPABASE_SERVICE_ROLE, Authorization: 'Bearer
 async function sbFetch(path, opts) {
   const o = opts || {};
   const headers = Object.assign({}, SUPABASE_HEADERS, o.headers || {});
-  const r = await fetch(SUPABASE_URL + path, { method: o.method || 'GET', headers, body: o.body });
+  const r = await fetch(SUPABASE_URL + path, { method: o.method || 'GET', headers, body: o.body, signal: o.signal });
   if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error('supabase ' + r.status + ' ' + t.slice(0, 120)); }
   return r;
 }
 async function loadFromSupabase() {
   if (!SUPABASE_URL) return false;
-  const r = await sbFetch('/rest/v1/app_data?select=*&id=eq.1');
+  const r = await sbFetch('/rest/v1/app_data?select=*&id=eq.1', { signal: AbortSignal.timeout(20000) });
   const rows = await r.json();
   if (!rows || !rows.length) return false;
   const row = rows[0];
@@ -131,7 +131,7 @@ async function loadFromSupabase() {
     resps: row.resps || [],
     monthly: row.monthly || []
   };
-  const ru = await sbFetch('/rest/v1/usuarios?select=*');
+  const ru = await sbFetch('/rest/v1/usuarios?select=*', { signal: AbortSignal.timeout(20000) });
   state.users = await ru.json();
   return true;
 }
