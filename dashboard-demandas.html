@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Dashboard Demandas - Grupo Via Porto</title>
+<link rel="icon" type="image/jpeg" href="logo-sistema.jpg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#f0f2f5;--card-bg:#fff;--text:#1a1a2e;--text-secondary:#555;--border:#ddd;--primary:#4361ee;--primary-hover:#3a56d4;--emproducao:#27ae60;--backlog:#95a5a6;--aguardando:#e67e22;--negociacao:#3498db;--execucao:#2ecc71;--finalizado:#1abc9c;--danger:#e74c3c;--danger-hover:#c0392b;--warning:#f39c12;--success:#27ae60}
 body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .header-brand{display:flex;align-items:center}
-.header-logo{height:40px;width:auto;display:block;background:#fff;padding:6px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header-logo{height:44px;width:auto;display:block;border-radius:6px}
 .header h1{font-size:1.4rem;font-weight:600}
 .header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .header-actions button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.85rem;transition:all .2s}
@@ -556,7 +557,7 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
 </head>
 <body>
 <div class="header">
-  <a class="header-brand" href="#" title="Grupo Via Porto"><img class="header-logo" src="logo-viaporto.png" alt="Grupo Via Porto"></a>
+  <a class="header-brand" href="#" title="Grupo Via Porto"><img class="header-logo" src="logo-sistema.jpg" alt="Grupo Via Porto"></a>
   <div class="header-actions">
     <button class="btn-clear-filter" id="btnClearFilter" onclick="clearFilters()">Limpar Filtro</button>
     <button class="view-btn on" id="btnViewKanban" onclick="toggleView('demandas')" title="Painel kanban de demandas">Dashboard</button>
@@ -591,6 +592,7 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
 <!-- Login Overlay -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
+    <img src="logo-sistema.jpg" alt="Grupo Via Porto" style="width:110px;height:110px;object-fit:contain;display:block;margin:0 auto 10px;border-radius:10px">
     <h2>Dashboard de Demandas</h2>
     <p>Acesso restrito. Entre com suas credenciais.</p>
     <label for="lgUser">Usuário</label>
