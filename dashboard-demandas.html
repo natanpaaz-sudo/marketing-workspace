@@ -2684,7 +2684,7 @@ const catTotal=ehPlano?planoMesTodos.reduce((s,m)=>s+planoInvestido(m),0):0;
       if(somaMin>0){
         headPct=Math.min(100,Math.round(catTotal/somaMin*100));
         const faltaH=Math.max(0,somaMin-catTotal);
-        headLabel=headPct>=100?'mínimo atingido ✓':'R$ '+plValFmt(catTotal)+' de R$ '+plValFmt(somaMin)+' mín. · faltam R$ '+plValFmt(faltaH);
+        headLabel=headPct>=100?'R$ '+plValFmt(catTotal)+' investido · mín. R$ '+plValFmt(somaMin)+' ✓':'R$ '+plValFmt(catTotal)+' de R$ '+plValFmt(somaMin)+' mín. · faltam R$ '+plValFmt(faltaH);
         headColor=headPct>=100?'#27ae60':(headPct>0?'#27ae60':'#0ea5e9');
       }
     }
@@ -3029,7 +3029,7 @@ function renderPlanoColHierarchical(i,ym){
     const pctRaw=Math.round(totalInv/minimo*100);
     barVal=Math.min(100,pctRaw);
     const falta=Math.max(0,minimo-totalInv);
-    barLabel=barVal>=100?'mínimo atingido ✓':'R$ '+plValFmt(totalInv)+' de R$ '+plValFmt(minimo)+' mín. · faltam R$ '+plValFmt(falta);
+    barLabel=barVal>=100?'R$ '+plValFmt(totalInv)+' investido · mín. R$ '+plValFmt(minimo)+' ✓':'R$ '+plValFmt(totalInv)+' de R$ '+plValFmt(minimo)+' mín. · faltam R$ '+plValFmt(falta);
     pct=barVal;
   }
 const colColor=minimo>0?(barVal>=100?'#27ae60':(barVal>0?'#27ae60':'#0ea5e9')):(done?'#27ae60':(pct>0?'#27ae60':'#0ea5e9'));
