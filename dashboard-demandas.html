@@ -882,6 +882,21 @@ body.colab .card-actions button.done,body.colab .card-actions button.del{display
         <div class="form-group required"><label for="plBrand">Marca</label><select id="plBrand" onchange="autoFillRespByBrand('plBrand','plResp')"><option value="">Selecione...</option></select></div>
         <div class="form-group required"><label for="plResp">Responsavel</label><select id="plResp"><option value="">Selecione...</option></select></div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plEmplacamento">Previsão de emplacamento</label>
+          <input type="number" id="plEmplacamento" min="0" step="1" placeholder="Ex: 138" oninput="calcEmplacamento()">
+        </div>
+        <div class="form-group">
+          <label for="plValorEmplacamento">R$ por emplacamento</label>
+          <input type="number" id="plValorEmplacamento" min="0" step="0.01" placeholder="700" oninput="calcEmplacamento()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div id="plMinimoDisplay" style="font-size:.95rem;font-weight:700;color:var(--primary);padding:8px 0">Mínimo para investir: —</div>
+        </div>
+      </div>
       <div class="checklist-section">
         <h4>Ações <span style="font-size:.7rem;color:var(--text-secondary);font-weight:400">(investimento por plataforma — Estado e Região/loja; agrupa no board; checks Aprovado/Contratado no board)</span></h4>
         <div id="plAcoes" ondragover="pfDragOver(event)" ondrop="pfDrop(event)" ondragleave="pfDragLeave(event)" style="position:relative"></div>
@@ -2662,10 +2677,19 @@ function renderMonthly(){
     totalPend+= (total-done); totalFeito+=done;
     const pct=total? Math.round(done/total*100):0;
     const segColor=pct===0?'#e74c3c':(pct<100?'#f39c12':'#27ae60');
-    const catTotal=ehPlano?planoMesTodos.reduce((s,m)=>s+planoInvestido(m),0):0;
+const catTotal=ehPlano?planoMesTodos.reduce((s,m)=>s+planoInvestido(m),0):0;
+    let headPct=pct,headLabel=done+'/'+total+' concluidos',headColor=segColor;
+    if(ehPlano){
+      const somaMin=planoMesTodos.reduce((s,m)=>s+planoMinimo(m),0);
+      if(somaMin>0){
+        headPct=Math.min(100,Math.round(catTotal/somaMin*100));
+        headLabel='R$ '+plValFmt(catTotal)+' de R$ '+plValFmt(somaMin)+' mín.';
+        headColor=headPct>=100?'#27ae60':(headPct>0?'#f39c12':'#0ea5e9');
+      }
+    }
     html+='<div class="mcat"><div class="mcat-header" onclick="toggleCat(this)">'
       +'<h3>'+cat+(catTotal>0?' <span class="mcat-total-val">R$ '+plValFmt(catTotal)+'</span>':'')+'</h3>'+catMesInput(cat)
-      +'<div class="mcat-progress">'+done+'/'+total+' concluidos <span style="font-weight:700;color:'+segColor+'">'+pct+'%</span><span class="mcat-caret">&#9660;</span><span class="mcat-bar"><span class="mcat-bar-fill" style="width:'+pct+'%;background:'+segColor+'"></span></span>'
+      +'<div class="mcat-progress">'+headLabel+' <span style="font-weight:700;color:'+headColor+'">'+headPct+'%</span><span class="mcat-caret">&#9660;</span><span class="mcat-bar"><span class="mcat-bar-fill" style="width:'+headPct+'%;background:'+headColor+'"></span></span>'
       +'<button class="mcat-add'+(normalizeCat(cat)==='Cadastro de Plano de Mídia'?' pl-add':'')+'" onclick="event.stopPropagation();openMonthlyForm(\''+cat.replace(/'/g,"\\'")+'\')" title="Adicionar atividade em '+cat+'" style="margin-left:8px;background:var(--primary);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:1rem;line-height:1">+</button></div>'
       +'</div>'+(ehPlano?plBrandBarHTML(selMes):'')+(ehGrav?gvBarHTML(selMes):'')+(ehOfertas?ofBarHTML(selMes):'')+(ehMc?mcBarHTML(selMes):'')+'<div class="mcat-body'+(ehPlano?' has-expanded':'')+'" data-cat="'+cat+'" ondragover="mcolOver(event)" ondrop="mcolDrop(event)" ondragleave="mcolLeave(event)">';
     items.forEach(i=>{html+=renderMonthlyCol(i,itemMes(i))});
@@ -2918,6 +2942,13 @@ function planoTotal(i){return (i.acoes||[]).length}
 function planoFeito(i){return (i.acoes||[]).filter(a=>a.aprovado&&a.contratado).length}
 function planoDone(i){const n=planoTotal(i);return n>0&&planoFeito(i)===n}
 function planoInvestido(i){return (i.acoes||[]).reduce((s,a)=>s+(+a.valor||0),0)}
+function planoMinimo(i){return (Number(i.emplacamento)||0)*(Number(i.valorEmplacamento)||700)}
+function calcEmplacamento(){
+  const ta=document.getElementById('plEmplacamento'),tb=document.getElementById('plValorEmplacamento'),out=document.getElementById('plMinimoDisplay');
+  if(!ta||!out)return;
+  const e=Number(ta.value)||0,v=Number(tb.value)||700;
+  out.textContent='Mínimo para investir: R$ '+plValFmt(e*v);
+}
 const PL_UF_ALIASES={
   AC:'ACRE',AL:'ALAGOAS',AP:'AMAPA',AM:'AMAZONAS',BA:'BAHIA',CE:'CEARA',DF:'DISTRITO FEDERAL',ES:'ESPIRITO SANTO',GO:'GOIAS',MA:'MARANHAO',MT:'MATO GROSSO',MS:'MATO GROSSO DO SUL',MG:'MINAS GERAIS',PA:'PARA',PB:'PARAIBA',PR:'PARANA',PE:'PERNAMBUCO',PI:'PIAUI',RJ:'RIO DE JANEIRO',RN:'RIO GRANDE DO NORTE',RS:'RIO GRANDE DO SUL',RO:'RONDONIA',RR:'RORAIMA',SC:'SANTA CATARINA',SP:'SAO PAULO',SE:'SERGIPE',TO:'TOCANTINS'
 };
@@ -2990,10 +3021,20 @@ function planoRenderActionGroup(i,grupo,label,total){
 function renderPlanoColHierarchical(i,ym){
   const done=planoDone(i);
   const f=planoFeito(i),t=planoTotal(i);
-  const pct=t?Math.round(f/t*100):0;
-  const colColor=done?'#27ae60':(pct>0?'#f39c12':'#0ea5e9');
+  const totalInv=planoInvestido(i);
+  const minimo=planoMinimo(i);
+  let pct=t?Math.round(f/t*100):0,barLabel='',barVal=pct;
+  if(minimo>0&&totalInv>0){
+    barVal=Math.round(totalInv/minimo*100);
+    barLabel='R$ '+plValFmt(totalInv)+' de R$ '+plValFmt(minimo)+' mín.';
+    pct=barVal;
+  }else if(minimo>0){
+    barLabel='R$ 0,00 de R$ '+plValFmt(minimo)+' mín.';
+    barVal=0;
+  }
+const colColor=minimo>0?(barVal>=100?'#27ae60':(barVal>0?'#f39c12':'#0ea5e9')):(done?'#27ae60':(pct>0?'#f39c12':'#0ea5e9'));
   const resp=(i.resp&&i.resp.name)?'<span class="mcat-badge resp">'+escHtml(i.resp.name)+'</span>':'';
-  const acoes=i.acoes||[],totalInv=planoInvestido(i),hier=planoHierarquia(i);
+  const acoes=i.acoes||[],hier=planoHierarquia(i);
   let verba='<div class="pl-verba-label">Verba por estado</div>';
   hier.forEach(e=>{
     const nome=e.uf||'SEM ESTADO',w=totalInv?Math.round(e.total/totalInv*100):0;
@@ -3032,7 +3073,7 @@ function renderPlanoColHierarchical(i,ym){
   const colTotal=planoInvestido(i),hint='<div class="pl-expand-hint">Clique marca/desmarca o dia de veiculação. Duplo clique define o nº de inserções (vazio apaga).</div>';
   return '<div class="mcat-col pl-col expanded" style="border-top-color:'+colColor+'" draggable="true" data-mid="'+i.id+'" ondragstart="mcolDragStart(event,\''+i.id+'\')" ondragend="mcolDragEnd(event)">'
     +'<div class="mcat-col-head"><span class="mcat-grip" title="Arrastar para reordenar">⠿</span><div class="mcat-col-title '+(done?'done':'')+'">'+titleText+'</div>'+(colTotal>0?'<span class="pl-col-total">R$ '+plValFmt(colTotal)+'</span>':'')+'<div class="mcat-col-actions pl-actions"><button title="Exportar PDF da marca" onclick="printPlano(\''+i.id+'\')">📄</button><button title="Editar" onclick="editMonthly(\''+i.id+'\')">✎</button><button title="Excluir" style="color:var(--danger)" onclick="removeMonthly(\''+i.id+'\')">✕</button></div></div>'
-    +'<div class="mcat-col-progress">'+f+'/'+t+' ações <span style="font-weight:700;color:'+colColor+'">'+pct+'%</span><span class="mcat-col-bar"><span class="mcat-col-bar-fill" style="width:'+pct+'%;background:'+colColor+'"></span></span></div>'
+    +'<div class="mcat-col-progress">'+(barLabel?barLabel+' <span style="font-weight:700;color:'+colColor+'">'+barVal+'%</span>':'<span style="font-weight:700;color:'+colColor+'">'+pct+'%</span>')+'<span class="mcat-col-bar"><span class="mcat-col-bar-fill" style="width:'+barVal+'%;background:'+colColor+'"></span></span></div>'
     +meta+verba+regTools+hint+'<div class="mc-acoes">'+rows+'</div>'+addBtn+'</div>';
 }
 function renderPlanoCol(i,ym){
@@ -3275,15 +3316,20 @@ function openPlanoForm(id){
   bs.innerHTML='<option value="">Selecione...</option>'+brands.map(b=>'<option value="'+b.name+'">'+b.name+'</option>').join('');
   const rs=document.getElementById('plResp');
   rs.innerHTML='<option value="">Selecione...</option>'+resps.map(r=>'<option value="'+r.name+'">'+r.name+'</option>').join('');
-  const el=document.getElementById('plAcoes');
+const el=document.getElementById('plAcoes');
+  document.getElementById('plEmplacamento').value='';
+  document.getElementById('plValorEmplacamento').value='700';
   if(id){
     const i=monthly.find(x=>x.id===id);
     if(i){
       bs.value=i.marca||'';
       rs.value=i.resp?i.resp.name:'';
+      document.getElementById('plEmplacamento').value=i.emplacamento!=null?i.emplacamento:'';
+      document.getElementById('plValorEmplacamento').value=i.valorEmplacamento!=null?i.valorEmplacamento:'700';
        el.innerHTML=(i.acoes||[]).map(a=>planoAcaoRow({plataforma:a.plataforma,uf:planoAcaoEstado(a),regiao:planoAcaoRegiao(a),valor:a.valor})).join('');
     }
   } else { el.innerHTML=''; }
+  calcEmplacamento();
   document.getElementById('planoFormModal').classList.add('active');
 }
 function closePlanoForm(){document.getElementById('planoFormModal').classList.remove('active');_plEditId=null;}
@@ -3294,6 +3340,8 @@ async function savePlanoForm(){
   await saveProtected(
     function prepare(){
       if(!marca){showToast('Selecione a marca');return false}
+      const emplacamento=Number(document.getElementById('plEmplacamento').value)||null;
+      const valorEmplacamento=Number(document.getElementById('plValorEmplacamento').value)||null;
       const acoes=[];
       document.querySelectorAll('#plAcoes .pl-acao-edit').forEach(row=>{
         const plataforma=row.querySelector('.pl-acao-plataforma').value.trim();
@@ -3307,6 +3355,7 @@ async function savePlanoForm(){
         const i=monthly.find(x=>x.id===_plEditId);
         if(i){
           i.marca=marca;i.titulo=marca;i.uf='';
+          i.emplacamento=emplacamento;i.valorEmplacamento=valorEmplacamento;
           i.resp=respName?{name:respName,email:(resps.find(x=>x.name===respName)||{}).email||''}:null;
           const old=(i.acoes||[]).slice();
           const oldUsados=new Array(old.length).fill(false);
@@ -3330,7 +3379,7 @@ async function savePlanoForm(){
           st.done=planoDone(i);st.concluidoEm=st.done?new Date().toISOString():null;
         }
       }else{
-        const i={id:'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),categoria:'Cadastro de Plano de Mídia',marca,titulo:marca,uf:'',resp:null,dia:null,mes:newItemMes('Cadastro de Plano de Mídia'),checklist:[],acoes,historico:{}};
+        const i={id:'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),categoria:'Cadastro de Plano de Mídia',marca,titulo:marca,uf:'',emplacamento,valorEmplacamento,resp:null,dia:null,mes:newItemMes('Cadastro de Plano de Mídia'),checklist:[],acoes,historico:{}};
         if(respName){const r=resps.find(x=>x.name===respName);if(r)i.resp={name:r.name,email:r.email||''}}
         monthly.push(i);
       }
