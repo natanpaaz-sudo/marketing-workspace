@@ -64,16 +64,14 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .brand-section{background:var(--card-bg);border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .brand-section h3{font-size:.9rem;margin-bottom:8px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bg);padding-bottom:4px}
 .brand-list{display:flex;flex-direction:column;gap:1px}
-.brand-line{display:flex;justify-content:space-between;align-items:center;padding:3px 10px;border-radius:6px;font-size:.85rem;transition:background .15s}
-.brand-line.clickable{cursor:pointer}
-.brand-line.clickable:hover{background:#f0f4ff}
-.brand-line.active{background:#e8edff;font-weight:600}
-.brand-name{font-weight:600;flex:1}
-.brand-nums{display:flex;gap:10px;font-size:.8rem;font-weight:700}
-.brand-atv{color:var(--primary)}
-.brand-fin{color:var(--text-secondary)}
-.brand-total{color:var(--text);font-weight:700}
-.brand-progress{display:flex;align-items:center;gap:4px;margin-left:8px;flex:0 0 auto}
+.brand-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.brand-table th,.brand-table td{padding:4px 6px;text-align:center;border-bottom:1px solid #f0f0f0}
+.brand-table th{text-align:left;font-size:.7rem;text-transform:uppercase;color:var(--text-secondary);font-weight:600}
+.brand-table td:first-child{text-align:left;font-weight:600}
+.brand-table tr:last-child td{border-bottom:none}
+.brand-table tr.clickable{cursor:pointer;transition:background .15s}
+.brand-table tr.clickable:hover{background:#f0f4ff}
+.brand-table .pct-cell{display:flex;align-items:center;justify-content:center;gap:4px}
 .period-filter{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--bg)}
 .period-filter label{font-size:.7rem;color:var(--text-secondary)}
 .period-filter input{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:.75rem}
@@ -1452,11 +1450,11 @@ function renderRespSummary(){
     const pct=total>0?Math.round(fin/total*100):0;
     const pctColor=pct>=70?'var(--success)':(pct>=30?'#f39c12':'var(--danger)');
     const activeClass=isFilterActive('brand',name)?' active':'';
-    return '<div class="brand-line clickable'+activeClass+'" onclick="toggleFilter(\'brand\',\''+name+'\',event)"><span class="brand-name">'+name+'</span><span class="brand-nums"><span class="brand-atv">'+ativas+'</span> <span class="brand-fin">'+fin+'</span> <span class="brand-total">'+total+'</span></span><span class="brand-progress"><span class="pct-bar"><span class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></span></div>';
+    return '<tr class="clickable'+activeClass+'" onclick="toggleFilter(\'brand\',\''+name+'\',event)"><td>'+escHtml(name)+'</td><td>'+ativas+'</td><td>'+fin+'</td><td>'+total+'</td><td class="pct-cell"><span class="pct-bar" style="min-width:40px"><span class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></td></tr>';
   }).join('');
 
   brandEl.innerHTML=
-    '<div class="brand-section"><h3>Por Marca</h3><div class="brand-list">'+(brandLines||'<div style="text-align:center;color:var(--text-secondary);font-size:.8rem">Nenhuma marca</div>')+'</div></div>';
+    '<div class="brand-section"><h3>Por Marca</h3><table class="brand-table"><thead><tr><th>Marca</th><th>Ativas</th><th>Fin</th><th>Total</th><th>%</th></tr></thead><tbody>'+(brandLines||'<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">Nenhuma marca</td></tr>')+'</tbody></table></div>';
 }
 
 function renderKanban(){
