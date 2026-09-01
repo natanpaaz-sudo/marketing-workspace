@@ -49,7 +49,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .summary-table tr.clickable:hover{background:#f0f4ff}
 .summary-table tr.active{background:#e8edff;font-weight:600}
 .pct-bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;min-width:60px}
-.pct-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.pct-bar-fill{height:100%;border-radius:3px;transition:width .3s;background:var(--success)}
 .pct-text{font-size:.75rem;font-weight:700;color:var(--success);margin-left:6px;white-space:nowrap}
 .totals-box{background:var(--card-bg);border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .totals-box h3{font-size:.9rem;margin-bottom:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bg);padding-bottom:6px}
@@ -1413,30 +1413,34 @@ function renderRespSummary(){
   const brandEl=document.getElementById('brandSection');
 
   const active=demands.filter(d=>d.status!=='finalizado');
+  const today=todayStr();
   const respData={};
+  const planoItems=monthly.filter(i=>normalizeCat(i.categoria)==='Cadastro de Plano de M');
   resps.forEach(r=>{
     const name=r.name;
-    const gerente=active.filter(d=>d.resp?.name===name&&d.status==='gerente').length;
-    const pendente=active.filter(d=>d.resp?.name===name&&d.status!=='gerente').length;
-    const atrasados=active.filter(d=>d.resp?.name===name&&(()=>{const dy=diasEfetivos(d);return dy!==null&&dy<0})()).length;
-    const semPrazo=active.filter(d=>d.resp?.name===name&&!d.deadline).length;
-    const fin=demands.filter(d=>d.resp?.name===name&&d.status==='finalizado').length;
-    respData[name]={gerente,pendente,atrasados,semPrazo,finalizados:fin};
+    const nome=(name||'').toLowerCase();
+    const ativas=active.filter(d=>(d.resp?.name||'').toLowerCase()===nome);
+    const vencCount=ativas.filter(d=>{const dy=diasEfetivos(d);return dy===0}).length;
+    const atrCount=ativas.filter(d=>{const dy=diasEfetivos(d);return dy!==null&&dy<0}).length;
+    const invTotal=planoItems.filter(i=>(i.resp?.name||'').toLowerCase()===nome).reduce((s,i)=>s+planoInvestido(i),0);
+    const fin=demands.filter(d=>(d.resp?.name||'').toLowerCase()===nome&&d.status==='finalizado').length;
+    respData[name]={ativas:ativas.length,vencendoHoje:vencCount,atrasadas:atrCount,investimento:invTotal,finalizados:fin};
   });
 
   const respRows=Object.entries(respData).map(([name,d])=>{
-    const pctBase=d.pendente+d.finalizados;
-    const pct=pctBase>0?Math.round(d.finalizados/pctBase*100):0;
+    const totalAtivas=d.ativas+d.finalizados;
+    const pct=totalAtivas>0?Math.round(d.finalizados/totalAtivas*100):0;
+    const pctColor=pct>=70?'var(--success)':(pct>=30?'#f39c12':'var(--danger)');
     const activeClass=isFilterActive('resp',name)?' active':'';
     const nm=String(name).replace(/'/g,"\\'");
-    return '<tr class="clickable'+activeClass+'" onclick="toggleFilter(\'resp\',\''+name+'\',event)"><td><strong>'+name+'</strong></td><td class="count tappable" title="Ver pendentes de '+name+'" onclick="event.stopPropagation();openTotals(\'pendente\',\''+nm+'\')">'+d.pendente+'</td><td class="count tappable" title="Ver em GERENTE de '+name+'" onclick="event.stopPropagation();openTotals(\'gerente\',\''+nm+'\')">'+d.gerente+'</td><td class="count tappable" title="Ver atrasados de '+name+'" onclick="event.stopPropagation();openTotals(\'atrasados\',\''+nm+'\')">'+d.atrasados+'</td><td style="display:flex;align-items:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:'+pct+'%;background:var(--success)"></div></div><span class="pct-text">'+pct+'%</span></td><td class="count tappable" title="Ver finalizadas de '+name+'" onclick="event.stopPropagation();openTotals(\'finalizados\',\''+nm+'\')">'+d.finalizados+'</td></tr>';
+    return '<tr class="clickable'+activeClass+'" onclick="toggleFilter(\'resp\',\''+name+'\',event)"><td><strong>'+name+'</strong></td><td class="count tappable" title="Ativas de '+name+'" onclick="event.stopPropagation();openTotals(\'ativas\',\''+nm+'\')">'+d.ativas+'</td><td class="count tappable" title="Vencendo hoje de '+name+'" onclick="event.stopPropagation();openTotals(\'vencendoHoje\',\''+nm+'\')">'+d.vencendoHoje+'</td><td class="count tappable" title="Atrasadas de '+name+'" onclick="event.stopPropagation();openTotals(\'atrasadas\',\''+nm+'\')">'+d.atrasadas+'</td><td>R$ '+plValFmt(d.investimento)+'</td><td style="display:flex;align-items:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></td></tr>';
   }).join('');
 
-  const totals=Object.values(respData).reduce((a,d)=>{a.pendente+=d.pendente;a.gerente+=d.gerente;a.atrasados+=d.atrasados;a.semPrazo+=d.semPrazo;a.finalizados+=d.finalizados;return a},{pendente:0,gerente:0,atrasados:0,semPrazo:0,finalizados:0});
+  const totals=Object.values(respData).reduce((a,d)=>{a.ativas+=d.ativas;a.vencendoHoje+=d.vencendoHoje;a.atrasadas+=d.atrasadas;a.investimento+=d.investimento;a.finalizados+=d.finalizados;return a},{ativas:0,vencendoHoje:0,atrasadas:0,investimento:0,finalizados:0});
 
   el.innerHTML=
-    '<div class="summary-table"><h3>Por Responsavel</h3><table><thead><tr><th>Responsavel</th><th>Pendente</th><th>GERENTE</th><th>Atrasado</th><th>Progresso</th><th>Finalizadas</th></tr></thead><tbody>'+(respRows||'<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Nenhum responsavel cadastrado</td></tr>')+'</tbody></table></div>'+
-    '<div class="totals-box"><div class="totals-grid"><div class="totals-card warn" onclick="openTotals(\'pendente\')" title="Ver demandas pendentes"><span class="totals-num">'+totals.pendente+'</span><span class="totals-label">Pendentes</span></div><div class="totals-card danger" onclick="openTotals(\'atrasados\')" title="Ver demandas atrasadas"><span class="totals-num">'+totals.atrasados+'</span><span class="totals-label">Atrasados</span></div><div class="totals-card muted" onclick="openTotals(\'semPrazo\')" title="Ver demandas sem prazo"><span class="totals-num">'+totals.semPrazo+'</span><span class="totals-label">Sem Prazo</span></div><div class="totals-card success" onclick="openTotals(\'finalizados\')" title="Ver demandas finalizadas"><span class="totals-num">'+totals.finalizados+'</span><span class="totals-label">Finalizados</span></div></div></div>';
+    '<div class="summary-table"><h3>Por Responsável</h3><table><thead><tr><th>Responsável</th><th>Ativas</th><th>Vencendo hoje</th><th>Atrasadas</th><th>Investimento</th><th>Progresso</th></tr></thead><tbody>'+(respRows||'<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Nenhum responsável cadastrado</td></tr>')+'</tbody></table></div>'+
+    '<div class="totals-box"><div class="totals-grid"><div class="totals-card warn" onclick="openTotals(\'ativas\')" title="Ver demandas ativas"><span class="totals-num">'+totals.ativas+'</span><span class="totals-label">Ativas</span></div><div class="totals-card danger" onclick="openTotals(\'atrasadas\')" title="Ver demandas atrasadas"><span class="totals-num">'+totals.atrasadas+'</span><span class="totals-label">Atrasadas</span></div><div class="totals-card success" onclick="openTotals(\'finalizados\')" title="Ver demandas finalizadas"><span class="totals-num">'+totals.finalizados+'</span><span class="totals-label">Finalizadas</span></div><div class="totals-card muted" title="Investimento total no plano"><span class="totals-num">R$ '+plValFmt(totals.investimento)+'</span><span class="totals-label">Investimento</span></div></div></div>';
 
   // Por Marca compacto
   const brandLines=brands.map(b=>{
@@ -1908,14 +1912,14 @@ function openFinalizados(){
 function closeFinalizados(){document.getElementById('finalizadosModal').classList.remove('active')}
 
 // Totais clickaveis
-const TOTALS_LABEL={pendente:'Pendentes',atrasados:'Atrasados',semPrazo:'Sem Prazo',finalizados:'Finalizadas'};
+const TOTALS_LABEL={ativas:'Ativas',vencendoHoje:'Vencendo Hoje',atrasadas:'Atrasadas',finalizados:'Finalizadas'};
 function openTotals(kind,nome){
   const active=demands.filter(d=>d.status!=='finalizado');
+  const today=todayStr();
   let list=[];
-  if(kind==='pendente'){list=active.filter(d=>d.status!=='gerente')}
-  else if(kind==='gerente'){list=active.filter(d=>d.status==='gerente')}
-  else if(kind==='atrasados'){list=active.filter(d=>{const dy=diasEfetivos(d);return dy!==null&&dy<0})}
-  else if(kind==='semPrazo'){list=active.filter(d=>!d.deadline)}
+  if(kind==='ativas'){list=active}
+  else if(kind==='vencendoHoje'){list=active.filter(d=>{const dy=diasEfetivos(d);return dy===0})}
+  else if(kind==='atrasadas'){list=active.filter(d=>{const dy=diasEfetivos(d);return dy!==null&&dy<0})}
   else if(kind==='finalizados'){list=demands.filter(d=>d.status==='finalizado')}
   if(nome){list=list.filter(d=>(d.resp?.name||'')===nome)}
   const lbl=TOTALS_LABEL[kind]||'Totais';
