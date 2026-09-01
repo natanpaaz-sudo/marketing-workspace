@@ -38,7 +38,9 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .summary-table{background:var(--card-bg);border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .summary-table h3{font-size:.9rem;margin-bottom:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bg);padding-bottom:6px}
 .summary-table table{width:100%;border-collapse:collapse;font-size:.85rem}
-.summary-table th,.summary-table td{padding:6px 8px;text-align:left;border-bottom:1px solid #f0f0f0}
+.summary-table th,.summary-table td{padding:6px 8px;text-align:center;border-bottom:1px solid #f0f0f0}
+.summary-table th{text-align:center}
+.summary-table td:first-child{text-align:left}
 .summary-table th{font-weight:600;color:var(--text-secondary);font-size:.75rem;text-transform:uppercase}
 .summary-table tr:last-child td{border-bottom:none}
 .resp-details{font-size:.7rem;color:var(--text-secondary);font-weight:400;margin-top:2px;line-height:1.3}
@@ -68,8 +70,10 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .brand-line.active{background:#e8edff;font-weight:600}
 .brand-name{font-weight:600;flex:1}
 .brand-nums{display:flex;gap:10px;font-size:.8rem;font-weight:700}
-.brand-pend{color:#856404}
-.brand-fin{color:#155724}
+.brand-atv{color:var(--primary)}
+.brand-fin{color:var(--text-secondary)}
+.brand-total{color:var(--text);font-weight:700}
+.brand-progress{display:flex;align-items:center;gap:4px;margin-left:8px;flex:0 0 auto}
 .period-filter{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--bg)}
 .period-filter label{font-size:.7rem;color:var(--text-secondary)}
 .period-filter input{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:.75rem}
@@ -1413,18 +1417,15 @@ function renderRespSummary(){
   const brandEl=document.getElementById('brandSection');
 
   const active=demands.filter(d=>d.status!=='finalizado');
-  const today=todayStr();
   const respData={};
-  const planoItems=monthly.filter(i=>normalizeCat(i.categoria)==='Cadastro de Plano de M');
   resps.forEach(r=>{
     const name=r.name;
     const nome=(name||'').toLowerCase();
     const ativas=active.filter(d=>(d.resp?.name||'').toLowerCase()===nome);
     const vencCount=ativas.filter(d=>{const dy=diasEfetivos(d);return dy===0}).length;
     const atrCount=ativas.filter(d=>{const dy=diasEfetivos(d);return dy!==null&&dy<0}).length;
-    const invTotal=planoItems.filter(i=>(i.resp?.name||'').toLowerCase()===nome).reduce((s,i)=>s+planoInvestido(i),0);
     const fin=demands.filter(d=>(d.resp?.name||'').toLowerCase()===nome&&d.status==='finalizado').length;
-    respData[name]={ativas:ativas.length,vencendoHoje:vencCount,atrasadas:atrCount,investimento:invTotal,finalizados:fin};
+    respData[name]={ativas:ativas.length,vencendoHoje:vencCount,atrasadas:atrCount,finalizados:fin};
   });
 
   const respRows=Object.entries(respData).map(([name,d])=>{
@@ -1433,22 +1434,25 @@ function renderRespSummary(){
     const pctColor=pct>=70?'var(--success)':(pct>=30?'#f39c12':'var(--danger)');
     const activeClass=isFilterActive('resp',name)?' active':'';
     const nm=String(name).replace(/'/g,"\\'");
-    return '<tr class="clickable'+activeClass+'" onclick="toggleFilter(\'resp\',\''+name+'\',event)"><td><strong>'+name+'</strong></td><td class="count tappable" title="Ativas de '+name+'" onclick="event.stopPropagation();openTotals(\'ativas\',\''+nm+'\')">'+d.ativas+'</td><td class="count tappable" title="Vencendo hoje de '+name+'" onclick="event.stopPropagation();openTotals(\'vencendoHoje\',\''+nm+'\')">'+d.vencendoHoje+'</td><td class="count tappable" title="Atrasadas de '+name+'" onclick="event.stopPropagation();openTotals(\'atrasadas\',\''+nm+'\')">'+d.atrasadas+'</td><td>R$ '+plValFmt(d.investimento)+'</td><td style="display:flex;align-items:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></td></tr>';
+    return '<tr class="clickable'+activeClass+'" onclick="toggleFilter(\'resp\',\''+name+'\',event)"><td><strong>'+name+'</strong></td><td class="count tappable" title="Ativas de '+name+'" onclick="event.stopPropagation();openTotals(\'ativas\',\''+nm+'\')">'+d.ativas+'</td><td class="count tappable" title="Vencendo hoje de '+name+'" onclick="event.stopPropagation();openTotals(\'vencendoHoje\',\''+nm+'\')">'+d.vencendoHoje+'</td><td class="count tappable" title="Atrasadas de '+name+'" onclick="event.stopPropagation();openTotals(\'atrasadas\',\''+nm+'\')">'+d.atrasadas+'</td><td style="display:flex;align-items:center;justify-content:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></td></tr>';
   }).join('');
 
-  const totals=Object.values(respData).reduce((a,d)=>{a.ativas+=d.ativas;a.vencendoHoje+=d.vencendoHoje;a.atrasadas+=d.atrasadas;a.investimento+=d.investimento;a.finalizados+=d.finalizados;return a},{ativas:0,vencendoHoje:0,atrasadas:0,investimento:0,finalizados:0});
+  const totals=Object.values(respData).reduce((a,d)=>{a.ativas+=d.ativas;a.vencendoHoje+=d.vencendoHoje;a.atrasadas+=d.atrasadas;a.finalizados+=d.finalizados;return a},{ativas:0,vencendoHoje:0,atrasadas:0,finalizados:0});
 
   el.innerHTML=
-    '<div class="summary-table"><h3>Por Responsável</h3><table><thead><tr><th>Responsável</th><th>Ativas</th><th>Vencendo hoje</th><th>Atrasadas</th><th>Investimento</th><th>Progresso</th></tr></thead><tbody>'+(respRows||'<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Nenhum responsável cadastrado</td></tr>')+'</tbody></table></div>'+
-    '<div class="totals-box"><div class="totals-grid"><div class="totals-card warn" onclick="openTotals(\'ativas\')" title="Ver demandas ativas"><span class="totals-num">'+totals.ativas+'</span><span class="totals-label">Ativas</span></div><div class="totals-card danger" onclick="openTotals(\'atrasadas\')" title="Ver demandas atrasadas"><span class="totals-num">'+totals.atrasadas+'</span><span class="totals-label">Atrasadas</span></div><div class="totals-card success" onclick="openTotals(\'finalizados\')" title="Ver demandas finalizadas"><span class="totals-num">'+totals.finalizados+'</span><span class="totals-label">Finalizadas</span></div><div class="totals-card muted" title="Investimento total no plano"><span class="totals-num">R$ '+plValFmt(totals.investimento)+'</span><span class="totals-label">Investimento</span></div></div></div>';
+    '<div class="summary-table"><h3>Por Responsável</h3><table><thead><tr><th>Responsável</th><th>Ativas</th><th>Vencendo hoje</th><th>Atrasadas</th><th>Progresso</th></tr></thead><tbody>'+(respRows||'<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">Nenhum responsável cadastrado</td></tr>')+'</tbody></table></div>'+
+    '<div class="totals-box"><div class="totals-grid"><div class="totals-card warn" onclick="openTotals(\'ativas\')" title="Ver demandas ativas"><span class="totals-num">'+totals.ativas+'</span><span class="totals-label">Ativas</span></div><div class="totals-card danger" onclick="openTotals(\'atrasadas\')" title="Ver demandas atrasadas"><span class="totals-num">'+totals.atrasadas+'</span><span class="totals-label">Atrasadas</span></div><div class="totals-card success" onclick="openTotals(\'finalizados\')" title="Ver demandas finalizadas"><span class="totals-num">'+totals.finalizados+'</span><span class="totals-label">Finalizadas</span></div><div class="totals-card muted" onclick="openTotals(\'vencendoHoje\')" title="Ver demandas vencendo hoje"><span class="totals-num">'+totals.vencendoHoje+'</span><span class="totals-label">Vencendo Hoje</span></div></div></div>';
 
-  // Por Marca compacto
+  // Por Marca
   const brandLines=brands.map(b=>{
     const name=b.name;
-    const pend=active.filter(d=>d.brand?.name===name).length;
+    const ativas=active.filter(d=>d.brand?.name===name).length;
     const fin=demands.filter(d=>d.brand?.name===name&&d.status==='finalizado').length;
+    const total=ativas+fin;
+    const pct=total>0?Math.round(fin/total*100):0;
+    const pctColor=pct>=70?'var(--success)':(pct>=30?'#f39c12':'var(--danger)');
     const activeClass=isFilterActive('brand',name)?' active':'';
-    return '<div class="brand-line clickable'+activeClass+'" onclick="toggleFilter(\'brand\',\''+name+'\',event)"><span class="brand-name">'+name+'</span><span class="brand-nums"><span class="brand-pend">'+pend+'&darr;</span> <span class="brand-fin">'+fin+'&#10003;</span></span></div>';
+    return '<div class="brand-line clickable'+activeClass+'" onclick="toggleFilter(\'brand\',\''+name+'\',event)"><span class="brand-name">'+name+'</span><span class="brand-nums"><span class="brand-atv">'+ativas+'</span> <span class="brand-fin">'+fin+'</span> <span class="brand-total">'+total+'</span></span><span class="brand-progress"><span class="pct-bar"><span class="pct-bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span><span class="pct-text" style="color:'+pctColor+'">'+pct+'%</span></span></div>';
   }).join('');
 
   brandEl.innerHTML=
