@@ -556,7 +556,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 .users-table button{background:none;border:none;color:var(--danger);cursor:pointer}
 .users-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
 .users-add input,.users-add select{padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:.82rem}
-/* ===== Role colaborador (tudo exceto finalizar/excluir demandas) ===== */
+/* ===== Role colaborador (pode criar/editar/finalizar demandas, mas não excluir) ===== */
 body.colab #btnManage,body.colab #btnUsers,body.colab #btnIniciarMes,body.colab #btnImportar{display:none!important}
 body.colab .card-actions button.done,body.colab .card-actions button.del{display:none!important}
 </style>
@@ -1051,6 +1051,7 @@ function currentUserName(){return __userName||MANAGER.name}
 function currentUserEmail(){return __userName?(resps.find(r=>r.name===__userName)||{}).email||'':MANAGER.email}
 function localStateString(){return JSON.stringify({demands,brands,resps,monthly})}
 function canEdit(){return __role==='admin'}
+function canFinalize(){return __role==='admin'||__role==='colaborador'}
 function canPlanoEdit(){return __role==='admin'||__role==='colaborador'}
 function canDemandEdit(){return __role==='admin'||__role==='colaborador'}
 // ===== Responsavel automatico por marca =====
@@ -1587,7 +1588,7 @@ function onDrop(e){
   e.currentTarget.classList.remove('drag-over');
   const status=e.currentTarget.dataset.status;
   if(draggedId&&status){
-    if(status==='finalizado'&&!canEdit()){showToast('Somente o gerente pode finalizar demandas');return}
+    if(status==='finalizado'&&!canFinalize()){showToast('Somente o gerente pode finalizar demandas');return}
     const d=demands.find(x=>x.id===draggedId);
     if(d){
       if(status==='emproducao'&&(!d.deadlineFornecedor||!d.fornecedorNome)){
@@ -1701,7 +1702,7 @@ document.getElementById('fFornConcluidaEm').textContent=d.deadlineFornecedorConc
   }
   const stSel=document.getElementById('fStatus');
   const stFinal=stSel?stSel.querySelector('option[value="finalizado"]'):null;
-  if(__role==='colaborador'&&stFinal)stFinal.disabled=(stSel.value!=='finalizado');
+  if(__role==='colaborador'&&stFinal)stFinal.disabled=false;
   // Mostrar/esconder seção do fornecedor conforme status
   function toggleFornecedorSection(){
     const s=document.getElementById('fStatus').value;
@@ -1717,7 +1718,7 @@ function closeForm(){document.getElementById('formModal').classList.remove('acti
 function editDemand(id){openForm(id)}
 
 function completeDemand(id){
-  if(!canEdit())return;
+  if(!canFinalize())return;
   const d=demands.find(x=>x.id===id);
   if(d){d.status='finalizado';d.finishedAt=new Date().toISOString();d.finalizadoPor={name:currentUserName(),email:currentUserEmail()};saveData();renderAll();sendEmail('finalizacao',d)}
 }
@@ -1733,7 +1734,7 @@ async function saveDemand(){
   const id=document.getElementById('fId').value;
   if(!canDemandEdit()){showToast('Acesso restrito');closeForm();return}
   const status=document.getElementById('fStatus').value;
-  if(status==='finalizado'&&!canEdit()){showToast('Somente o gerente pode finalizar demandas');return}
+  if(status==='finalizado'&&!canFinalize()){showToast('Somente o gerente pode finalizar demandas');return}
   let mails=[];
   await saveProtected(
     function prepare(){
